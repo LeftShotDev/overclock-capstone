@@ -2,7 +2,7 @@ import { createUIMessageStreamResponse, type UIMessage } from "ai";
 import { toBaseMessages, toUIMessageStream } from "@ai-sdk/langchain";
 import { HumanMessage } from "@langchain/core/messages";
 import { getCoursewareGraph } from "@/lib/agents";
-import type { ConstraintAnswer, SyllabusData } from "@/lib/types";
+import { PERSONAS } from "@/lib/data/personas";
 
 export const maxDuration = 60;
 
@@ -10,13 +10,11 @@ export async function POST(req: Request) {
   const {
     messages,
     personaId,
-    constraintAnswers,
-    syllabusData,
+    characterId,
   }: {
     messages: UIMessage[];
     personaId?: string;
-    constraintAnswers?: ConstraintAnswer[];
-    syllabusData?: SyllabusData | null;
+    characterId?: string | null;
   } = await req.json();
 
   const graph = getCoursewareGraph();
@@ -25,26 +23,14 @@ export async function POST(req: Request) {
   // Build context string
   let context = "";
   if (personaId) {
-    context += `The user's teaching persona is "${personaId}".`;
-  }
-  if (constraintAnswers?.length) {
-    const constraints = constraintAnswers
-      .map((a) => `${a.constraintKey}: ${a.selectedValue}`)
-      .join(", ");
-    context += ` Course constraints: ${constraints}.`;
-  }
-  if (syllabusData) {
-    const parts: string[] = [];
-    if (syllabusData.courseDuration) parts.push(`Duration: ${syllabusData.courseDuration}`);
-    if (syllabusData.moduleCount) parts.push(`${syllabusData.moduleCount} modules`);
-    if (syllabusData.assignmentTypes?.length)
-      parts.push(`Assignments: ${syllabusData.assignmentTypes.join(", ")}`);
-    if (syllabusData.gradingPolicies) parts.push(`Grading: ${syllabusData.gradingPolicies}`);
-    if (syllabusData.discussionExpectations)
-      parts.push(`Discussion: ${syllabusData.discussionExpectations}`);
-    if (parts.length) {
-      context += ` Syllabus analysis: ${parts.join("; ")}.`;
+    const persona = PERSONAS[personaId];
+    if (persona) {
+      context += `The user's teaching persona is "${persona.name}" (${personaId}).`;
+      context += ` Their settings: mastery threshold ${persona.masteryThreshold}%, ${persona.messagePersonality} personality, auto messages ${persona.sendAutoMessages ? "on" : "off"}, enabled messages: ${persona.enabledAutoMessages.join(", ")}, study plan rollup ${persona.showStudyPlanRollup ? "visible" : "hidden"}, graded participation ${persona.gradedParticipationEnabled ? "enabled" : "disabled"}.`;
     }
+  }
+  if (characterId) {
+    context += ` Selected character: ${characterId}.`;
   }
 
   if (context) {

@@ -22,28 +22,33 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+type SettingValue = string | boolean | number | string[];
+
 export default function SettingsPage() {
   const router = useRouter();
-  const { quizResult, constraintAnswers, syllabusData, hydrated } = useQuiz();
+  const { quizResult, selectedCharacterId, hydrated } = useQuiz();
 
   const recommendations = useMemo(() => {
     if (!quizResult) return {};
-    return computeRecommendations({ quizResult, constraintAnswers, syllabusData });
-  }, [quizResult, constraintAnswers, syllabusData]);
+    return computeRecommendations({ quizResult });
+  }, [quizResult]);
 
   const dynamicSettings = useMemo(
     () =>
       COURSEWARE_SETTINGS.map((s) => ({
         ...s,
-        recommendedValue: recommendations[s.id] ?? s.recommendedValue,
+        recommendedValue: (recommendations[s.id] ?? s.recommendedValue) as typeof s.recommendedValue,
       })),
     [recommendations]
   );
 
-  const [settingValues, setSettingValues] = useState<Record<string, string>>(
+  const [settingValues, setSettingValues] = useState<Record<string, SettingValue>>(
     () =>
       Object.fromEntries(
-        COURSEWARE_SETTINGS.map((s) => [s.id, String(s.currentValue)])
+        COURSEWARE_SETTINGS.map((s) => [
+          s.id,
+          recommendations[s.id] ?? s.currentValue,
+        ])
       )
   );
   const [saved, setSaved] = useState(false);
@@ -57,7 +62,7 @@ export default function SettingsPage() {
 
   const persona = PERSONAS[quizResult.topPersonaId];
 
-  function handleValueChange(settingId: string, newValue: string) {
+  function handleValueChange(settingId: string, newValue: SettingValue) {
     setSettingValues((prev) => ({ ...prev, [settingId]: newValue }));
     setSaved(false);
   }
@@ -67,7 +72,9 @@ export default function SettingsPage() {
   }
 
   const changedCount = COURSEWARE_SETTINGS.filter(
-    (s) => settingValues[s.id] !== String(s.currentValue)
+    (s) =>
+      JSON.stringify(settingValues[s.id]) !==
+      JSON.stringify(recommendations[s.id] ?? s.currentValue)
   ).length;
 
   return (
@@ -80,9 +87,7 @@ export default function SettingsPage() {
             <span className="font-medium text-foreground">
               {persona?.name}
             </span>
-            . Recommended values are tailored to your teaching style
-            {constraintAnswers.length > 0 && " and course constraints"}
-            {syllabusData && " and syllabus"}.
+            . Recommended values are tailored to your teaching persona.
           </p>
         </div>
 
@@ -136,8 +141,7 @@ export default function SettingsPage() {
           emptyMessage="Have questions about a setting? Ask me and I'll explain it in your persona's style."
           body={{
             personaId: quizResult.topPersonaId,
-            constraintAnswers,
-            syllabusData,
+            characterId: selectedCharacterId,
           }}
           className="h-[400px]"
         />

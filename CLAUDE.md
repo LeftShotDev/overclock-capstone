@@ -17,6 +17,8 @@ No test framework is configured. Use `pnpm build` as the primary verification st
 ```
 ANTHROPIC_API_KEY              # Claude — persona blurb + syllabus agent
 GOOGLE_GENERATIVE_AI_API_KEY   # Gemini — settings chat assistant
+NEXT_PUBLIC_SUPABASE_URL       # Supabase project URL (optional — app works without)
+NEXT_PUBLIC_SUPABASE_ANON_KEY  # Supabase anon key (optional)
 ```
 
 Copy `.env.example` to `.env.local` and fill in keys.
@@ -51,9 +53,28 @@ Agent tools live in `lib/agents/tools/`. Each tool receives raw data and returns
 - Streaming responses use `createUIMessageStreamResponse` + `toUIMessageStream` for LangGraph → Vercel AI SDK bridging
 - One-shot streaming uses `streamText` from `ai` package directly
 
+### Supabase (Database Layer)
+
+Optional Supabase integration with graceful fallback to static data when env vars are missing.
+
+- **Client**: `lib/supabase.ts` — lazy singleton via `getSupabase()`, returns `null` if env vars missing
+- **Queries**: `lib/supabase-queries.ts` — `fetchPersonas()`, `fetchCharactersByPersona()`, `writeQuizResult()`
+- **Schema**: `supabase/migrations/001_schema.sql` — 5 tables (personas, characters, message_template_types, quiz_results, message_templates)
+- **Seed**: `supabase/migrations/002_seed.sql` — 5 personas, 16 characters, 2 template types
+
+Run migrations via Supabase Dashboard SQL editor or `supabase db push`.
+
+### Persona Model (5 Personas)
+
+Explorer, Nurturer, Mentor, Mastery Coach, Strategist — defined in `lib/data/personas.ts` (static fallback) and `supabase/migrations/002_seed.sql` (database source). Each persona maps to 6 platform settings. Quiz scoring is a **deterministic decision tree** in `lib/quiz-scoring.ts` (not weighted).
+
+### Character Selection
+
+After persona reveal, users pick a fictional teacher character from their persona's pool (16 characters across 5 personas). Characters are fetched from Supabase; if unavailable, the section is hidden. Selected `characterId` is stored in quiz context and passed to the chat API.
+
 ### Recommendation Engine
 
-`lib/recommendation-engine.ts` is a pure deterministic function (no LLM call) that computes setting recommendations from persona + constraints + syllabus data. It runs on every settings page load.
+`lib/recommendation-engine.ts` is a pure deterministic function (no LLM call) that computes setting recommendations by directly reading persona settings. It runs on every settings page load.
 
 ### next.config.ts
 
@@ -70,6 +91,8 @@ Agent tools live in `lib/agents/tools/`. Each tool receives raw data and returns
 - Static data (questions, personas, settings) lives in `lib/data/`
 - UI primitives are shadcn/ui in `components/ui/`; app components are in `components/`
 - Path alias: `@/*` maps to project root
+- Setting types: `select` (dropdown), `toggle` (switch), `multi-select` (checkboxes)
+- Supabase columns use `snake_case`; TypeScript uses `camelCase` — mapping happens in `lib/supabase-queries.ts`
 
 ## Context Files
 

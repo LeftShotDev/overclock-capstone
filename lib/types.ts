@@ -7,7 +7,6 @@ export const QuizQuestionSchema = z.object({
     z.object({
       label: z.string(),
       value: z.string(),
-      personaWeights: z.record(z.string(), z.number()),
     })
   ),
 });
@@ -23,25 +22,46 @@ export const TeachingPersonaSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
-  traits: z.array(z.string()),
-  communicationStyle: z.string(),
+  resultMessage: z.string(),
+  masteryThreshold: z.number(),
+  messagePersonality: z.enum(["coach", "advisor"]),
+  sendAutoMessages: z.boolean(),
+  enabledAutoMessages: z.array(z.string()),
+  showStudyPlanRollup: z.boolean(),
+  gradedParticipationEnabled: z.boolean(),
 });
 export type TeachingPersona = z.infer<typeof TeachingPersonaSchema>;
+
+export const CharacterSchema = z.object({
+  id: z.string(),
+  personaId: z.string(),
+  name: z.string(),
+  work: z.string(),
+  tagline: z.string(),
+  description: z.string(),
+  voiceProfile: z.record(z.string(), z.unknown()),
+  sortOrder: z.number(),
+});
+export type Character = z.infer<typeof CharacterSchema>;
 
 export const CoursewareSettingSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
-  currentValue: z.union([z.string(), z.boolean(), z.number()]),
-  recommendedValue: z.union([z.string(), z.boolean(), z.number()]),
-  options: z.array(z.string()).optional(),
+  currentValue: z.union([z.string(), z.boolean(), z.number(), z.array(z.string())]),
+  recommendedValue: z.union([z.string(), z.boolean(), z.number(), z.array(z.string())]),
+  options: z.array(
+    z.object({
+      label: z.string(),
+      value: z.union([z.string(), z.boolean(), z.number()]),
+    })
+  ).optional(),
+  type: z.enum(["select", "toggle", "multi-select"]),
 });
 export type CoursewareSetting = z.infer<typeof CoursewareSettingSchema>;
 
 export interface QuizResult {
   topPersonaId: string;
-  scores: Record<string, number>;
-  ranking: string[];
 }
 
 // Constraint questions — factual course logistics, no persona weights

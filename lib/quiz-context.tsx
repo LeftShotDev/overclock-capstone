@@ -26,6 +26,8 @@ interface QuizContextValue {
   setCurrentStepIndex: (index: number) => void;
   quizResult: QuizResult | null;
   setQuizResult: (result: QuizResult) => void;
+  selectedCharacterId: string | null;
+  setSelectedCharacterId: (id: string | null) => void;
   reset: () => void;
   hydrated: boolean;
 }
@@ -42,6 +44,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
   const [syllabusData, setSyllabusData] = useState<SyllabusData | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -54,6 +57,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
         setSyllabusData(parsed.syllabusData || null);
         setCurrentStepIndex(parsed.currentStepIndex || 0);
         setQuizResult(parsed.quizResult || null);
+        setSelectedCharacterId(parsed.selectedCharacterId || null);
       }
     } catch {
       // Ignore parse errors
@@ -71,10 +75,11 @@ export function QuizProvider({ children }: { children: ReactNode }) {
           syllabusData,
           currentStepIndex,
           quizResult,
+          selectedCharacterId,
         })
       );
     }
-  }, [answers, constraintAnswers, syllabusData, currentStepIndex, quizResult, hydrated]);
+  }, [answers, constraintAnswers, syllabusData, currentStepIndex, quizResult, selectedCharacterId, hydrated]);
 
   const addAnswer = useCallback((answer: QuizAnswer) => {
     setAnswers((prev) => [...prev, answer]);
@@ -90,6 +95,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
     setSyllabusData(null);
     setCurrentStepIndex(0);
     setQuizResult(null);
+    setSelectedCharacterId(null);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
@@ -106,6 +112,8 @@ export function QuizProvider({ children }: { children: ReactNode }) {
         setCurrentStepIndex,
         quizResult,
         setQuizResult,
+        selectedCharacterId,
+        setSelectedCharacterId,
         reset,
         hydrated,
       }}

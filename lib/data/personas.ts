@@ -1,40 +1,74 @@
 import type { TeachingPersona } from "@/lib/types";
 
 export const PERSONAS: Record<string, TeachingPersona> = {
-  "the-architect": {
-    id: "the-architect",
-    name: "The Architect",
+  explorer: {
+    id: "explorer",
+    name: "Explorer",
     description:
-      "You're methodical, structured, and believe in building strong foundations. Your courses are well-organized machines where every piece fits perfectly. Students always know exactly where they stand and what's coming next.",
-    traits: ["organized", "systematic", "detail-oriented", "consistent"],
-    communicationStyle:
-      "Clear, structured explanations with step-by-step guidance. You use outlines, checklists, and well-defined rubrics.",
+      "Learning is discovery. Students grow by exploring, experimenting, and making their own connections. Structure should be light enough that curiosity isn't boxed in.",
+    resultMessage:
+      "You're an **Explorer**. You believe learning happens when students have the freedom to discover, question, and make the material their own. You trust the process — and your students — to find the path forward.",
+    masteryThreshold: 70,
+    messagePersonality: "coach",
+    sendAutoMessages: true,
+    enabledAutoMessages: ["help_hints"],
+    showStudyPlanRollup: false,
+    gradedParticipationEnabled: false,
   },
-  "the-coach": {
-    id: "the-coach",
-    name: "The Coach",
+  nurturer: {
+    id: "nurturer",
+    name: "Nurturer",
     description:
-      "You're all heart. You see every student as an individual with unique potential, and you're there to help them unlock it. Your door is always open, and no question is too small.",
-    traits: ["empathetic", "supportive", "patient", "encouraging"],
-    communicationStyle:
-      "Warm, personal, and encouraging. You check in often and celebrate small wins. Your feedback is constructive and kind.",
+      "Every student deserves to feel supported and seen. Scaffolding, encouragement, and visible progress markers help students build confidence alongside knowledge.",
+    resultMessage:
+      "You're a **Nurturer**. You create environments where students feel safe to struggle, grow, and celebrate their wins. You surround them with support systems so no one falls through the cracks.",
+    masteryThreshold: 70,
+    messagePersonality: "coach",
+    sendAutoMessages: true,
+    enabledAutoMessages: ["help_hints", "good_game"],
+    showStudyPlanRollup: true,
+    gradedParticipationEnabled: false,
   },
-  "the-explorer": {
-    id: "the-explorer",
-    name: "The Explorer",
+  mentor: {
+    id: "mentor",
+    name: "Mentor",
     description:
-      "You believe the best learning happens through discovery. Your classroom is a laboratory where students experiment, fail safely, and find their own paths. Structure is a suggestion, curiosity is the rule.",
-    traits: ["creative", "adventurous", "flexible", "innovative"],
-    communicationStyle:
-      "Enthusiastic and open-ended. You ask more questions than you answer and love a good 'what if?' You embrace tangents that lead somewhere interesting.",
+      "Teaching is a long game. Show up, do the work, build the relationship. Standards matter, but so does meeting students where they are and walking alongside them.",
+    resultMessage:
+      "You're a **Mentor**. You hold a steady standard and invest in your students for the long haul. Showing up matters to you — and you make sure your students know you're showing up for them, too.",
+    masteryThreshold: 80,
+    messagePersonality: "coach",
+    sendAutoMessages: true,
+    enabledAutoMessages: ["help_hints", "good_game"],
+    showStudyPlanRollup: true,
+    gradedParticipationEnabled: true,
   },
-  "the-sage": {
-    id: "the-sage",
-    name: "The Sage",
+  mastery_coach: {
+    id: "mastery_coach",
+    name: "Mastery Coach",
     description:
-      "You're a deep thinker who values knowledge and intellectual rigor. Your courses challenge students to think critically and engage with material at a profound level. You curate the best resources and guide students toward mastery.",
-    traits: ["analytical", "thoughtful", "rigorous", "knowledgeable"],
-    communicationStyle:
-      "Precise and substantive. You provide rich context and encourage deep reading. Your discussions are Socratic and thought-provoking.",
+      "High expectations are an act of respect. Students can reach the bar — it's your job to push them there and give them every tool to succeed. No settling.",
+    resultMessage:
+      "You're a **Mastery Coach**. You set the bar high because you know your students can clear it — and you'll be right there alongside them, pushing, encouraging, and refusing to let them settle for less than their best.",
+    masteryThreshold: 90,
+    messagePersonality: "coach",
+    sendAutoMessages: true,
+    enabledAutoMessages: ["help_hints", "good_game"],
+    showStudyPlanRollup: true,
+    gradedParticipationEnabled: true,
+  },
+  strategist: {
+    id: "strategist",
+    name: "Strategist",
+    description:
+      "Excellence requires clarity. Give students precise feedback, clear expectations, and a structured path. The work speaks for itself — no hand-holding needed.",
+    resultMessage:
+      "You're a **Strategist**. You believe in clear expectations, precise feedback, and structured paths to excellence. You don't need to sugarcoat — your students respect you because you respect their ability to handle the truth and do the work.",
+    masteryThreshold: 90,
+    messagePersonality: "advisor",
+    sendAutoMessages: true,
+    enabledAutoMessages: ["help_hints"],
+    showStudyPlanRollup: true,
+    gradedParticipationEnabled: true,
   },
 };

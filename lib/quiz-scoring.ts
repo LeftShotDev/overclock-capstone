@@ -1,33 +1,34 @@
-import type { QuizAnswer } from "@/lib/types";
-import { QUIZ_QUESTIONS } from "@/lib/data/quiz-questions";
+import type { QuizAnswer, QuizResult } from "@/lib/types";
 
-export interface QuizResult {
-  topPersonaId: string;
-  scores: Record<string, number>;
-  ranking: string[];
-}
-
+/**
+ * Deterministic decision tree scoring from teacher-persona-agent.md:
+ *
+ * IF threshold == 70 AND structure == "open"  → Explorer
+ * ELSE IF threshold == 70                     → Nurturer
+ * ELSE IF threshold == 80                     → Mentor
+ * ELSE IF threshold == 90 AND personality == "coach"   → Mastery Coach
+ * ELSE IF threshold == 90 AND personality == "advisor"  → Strategist
+ */
 export function calculateQuizResults(answers: QuizAnswer[]): QuizResult {
-  const totals: Record<string, number> = {};
+  const answerMap = new Map(answers.map((a) => [a.questionId, a.selectedValue]));
 
-  for (const answer of answers) {
-    const question = QUIZ_QUESTIONS.find((q) => q.id === answer.questionId);
-    if (!question) continue;
-    const option = question.options.find(
-      (o) => o.value === answer.selectedValue
-    );
-    if (!option) continue;
+  const threshold = answerMap.get("mastery-philosophy") ?? "80";
+  const personality = answerMap.get("communication-tone") ?? "coach";
+  const structure = answerMap.get("classroom-structure") ?? "guided";
 
-    for (const [persona, weight] of Object.entries(option.personaWeights)) {
-      totals[persona] = (totals[persona] || 0) + weight;
-    }
+  let topPersonaId: string;
+
+  if (threshold === "70" && structure === "open") {
+    topPersonaId = "explorer";
+  } else if (threshold === "70") {
+    topPersonaId = "nurturer";
+  } else if (threshold === "80") {
+    topPersonaId = "mentor";
+  } else if (threshold === "90" && personality === "coach") {
+    topPersonaId = "mastery_coach";
+  } else {
+    topPersonaId = "strategist";
   }
 
-  const sorted = Object.entries(totals).sort(([, a], [, b]) => b - a);
-
-  return {
-    topPersonaId: sorted[0]?.[0] || "the-architect",
-    scores: Object.fromEntries(sorted),
-    ranking: sorted.map(([id]) => id),
-  };
+  return { topPersonaId };
 }

@@ -5,19 +5,32 @@ import { useRouter } from "next/navigation";
 import { useQuiz } from "@/lib/quiz-context";
 import { PERSONAS } from "@/lib/data/personas";
 import { PersonaCard } from "@/components/persona-card";
+import { CharacterCard } from "@/components/character-card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { fetchCharactersByPersona, writeQuizResult } from "@/lib/supabase-queries";
+import { computeRecommendations } from "@/lib/recommendation-engine";
+import type { Character } from "@/lib/types";
 
 export default function ResultsPage() {
   const router = useRouter();
-  const { quizResult, constraintAnswers, syllabusData, hydrated } = useQuiz();
+  const {
+    quizResult,
+    answers,
+    constraintAnswers,
+    syllabusData,
+    selectedCharacterId,
+    setSelectedCharacterId,
+    hydrated,
+  } = useQuiz();
   const [blurb, setBlurb] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [loadingCharacters, setLoadingCharacters] = useState(false);
 
-  const persona = quizResult
-    ? PERSONAS[quizResult.topPersonaId]
-    : null;
+  const persona = quizResult ? PERSONAS[quizResult.topPersonaId] : null;
 
+  // Fetch persona blurb
   useEffect(() => {
     if (!hydrated || !quizResult || !persona) return;
 
@@ -31,7 +44,6 @@ export default function ResultsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             personaId: quizResult!.topPersonaId,
-            scores: quizResult!.scores,
             constraintAnswers,
             syllabusData,
           }),
@@ -62,7 +74,17 @@ export default function ResultsPage() {
 
     fetchBlurb();
     return () => controller.abort();
-  }, [hydrated, quizResult, persona]);
+  }, [hydrated, quizResult, persona, constraintAnswers, syllabusData]);
+
+  // Fetch characters for persona
+  useEffect(() => {
+    if (!hydrated || !quizResult) return;
+
+    setLoadingCharacters(true);
+    fetchCharactersByPersona(quizResult.topPersonaId)
+      .then(setCharacters)
+      .finally(() => setLoadingCharacters(false));
+  }, [hydrated, quizResult]);
 
   if (!hydrated) return null;
 
@@ -71,14 +93,24 @@ export default function ResultsPage() {
     return null;
   }
 
-  const sortedScores = Object.entries(quizResult.scores).sort(
-    ([, a], [, b]) => b - a
-  );
-  const maxScore = sortedScores[0]?.[1] || 1;
+  const handleContinue = async () => {
+    // Write quiz result to Supabase (best-effort)
+    const recommendations = computeRecommendations({ quizResult });
+    writeQuizResult({
+      personaId: quizResult.topPersonaId,
+      characterId: selectedCharacterId,
+      appliedSettings: recommendations,
+      quizAnswers: answers,
+      constraintAnswers,
+      syllabusData,
+    });
+
+    router.push("/settings");
+  };
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-xl space-y-8 py-8">
+      <div className="w-full max-w-2xl space-y-8 py-8">
         <div className="text-center space-y-2">
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
             Your teaching persona is...
@@ -98,34 +130,40 @@ export default function ResultsPage() {
           </div>
         )}
 
-        <Separator />
-
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">
-            Score Breakdown
-          </p>
-          {sortedScores.map(([id, score]) => {
-            const p = PERSONAS[id];
-            if (!p) return null;
-            return (
-              <div key={id} className="flex items-center gap-3">
-                <span className="text-sm w-28 shrink-0">{p.name}</span>
-                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all duration-500"
-                    style={{ width: `${(score / maxScore) * 100}%` }}
-                  />
-                </div>
-                <span className="text-xs text-muted-foreground w-8 text-right">
-                  {score}
-                </span>
+        {characters.length > 0 && (
+          <>
+            <Separator />
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">
+                  Choose your teaching character
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Your pick shapes the tone of automated messages your students receive.
+                </p>
               </div>
-            );
-          })}
-        </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {characters.map((character) => (
+                  <CharacterCard
+                    key={character.id}
+                    character={character}
+                    isSelected={selectedCharacterId === character.id}
+                    onSelect={setSelectedCharacterId}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {loadingCharacters && (
+          <p className="text-sm text-muted-foreground text-center">
+            Loading characters...
+          </p>
+        )}
 
         <Button
-          onClick={() => router.push("/settings")}
+          onClick={handleContinue}
           className="w-full"
           size="lg"
         >

@@ -15,12 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 
 interface SettingCardProps {
   setting: CoursewareSetting;
-  currentValue: string;
-  onValueChange: (settingId: string, newValue: string) => void;
+  currentValue: string | boolean | number | string[];
+  onValueChange: (settingId: string, newValue: string | boolean | number | string[]) => void;
 }
 
 export function SettingCard({
@@ -28,7 +30,8 @@ export function SettingCard({
   currentValue,
   onValueChange,
 }: SettingCardProps) {
-  const isRecommended = currentValue === String(setting.recommendedValue);
+  const isRecommended =
+    JSON.stringify(currentValue) === JSON.stringify(setting.recommendedValue);
 
   return (
     <Card>
@@ -44,21 +47,35 @@ export function SettingCard({
         <CardDescription>{setting.description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-3">
+        {setting.type === "toggle" && (
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={currentValue === true}
+              onCheckedChange={(checked) => onValueChange(setting.id, checked)}
+            />
+            <span className="text-sm text-muted-foreground">
+              {currentValue ? "Enabled" : "Disabled"}
+            </span>
+          </div>
+        )}
+
+        {setting.type === "select" && setting.options && (
           <Select
-            value={currentValue}
-            onValueChange={(val) => onValueChange(setting.id, val)}
+            value={String(currentValue)}
+            onValueChange={(val) => {
+              // Try to preserve the original type
+              const numVal = Number(val);
+              onValueChange(setting.id, isNaN(numVal) ? val : numVal);
+            }}
           >
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {setting.options?.map((option) => (
-                <SelectItem key={option} value={option}>
-                  <span className="capitalize">
-                    {option.replace(/-/g, " ")}
-                  </span>
-                  {option === String(setting.recommendedValue) && (
+              {setting.options.map((option) => (
+                <SelectItem key={String(option.value)} value={String(option.value)}>
+                  <span>{option.label}</span>
+                  {String(option.value) === String(setting.recommendedValue) && (
                     <span className="ml-2 text-xs text-muted-foreground">
                       (recommended)
                     </span>
@@ -67,7 +84,37 @@ export function SettingCard({
               ))}
             </SelectContent>
           </Select>
-        </div>
+        )}
+
+        {setting.type === "multi-select" && setting.options && (
+          <div className="space-y-2">
+            {setting.options.map((option) => {
+              const selected = Array.isArray(currentValue)
+                ? currentValue.includes(String(option.value))
+                : false;
+              return (
+                <label
+                  key={String(option.value)}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <Checkbox
+                    checked={selected}
+                    onCheckedChange={(checked) => {
+                      const current = Array.isArray(currentValue)
+                        ? currentValue
+                        : [];
+                      const next = checked
+                        ? [...current, String(option.value)]
+                        : current.filter((v) => v !== String(option.value));
+                      onValueChange(setting.id, next);
+                    }}
+                  />
+                  <span className="text-sm">{option.label}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

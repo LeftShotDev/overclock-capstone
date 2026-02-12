@@ -8,17 +8,15 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const {
     personaId,
-    scores,
     constraintAnswers,
     syllabusData,
   }: {
     personaId: string;
-    scores: Record<string, number>;
     constraintAnswers?: ConstraintAnswer[];
     syllabusData?: SyllabusData | null;
   } = await req.json();
 
-  const persona = PERSONAS[personaId] || PERSONAS["the-architect"];
+  const persona = PERSONAS[personaId] || PERSONAS["mentor"];
 
   let contextSection = "";
   if (constraintAnswers?.length) {
@@ -44,10 +42,8 @@ export async function POST(req: Request) {
 
 Persona details:
 - Description: ${persona.description}
-- Traits: ${persona.traits.join(", ")}
-- Communication style: ${persona.communicationStyle}
-
-Their score breakdown: ${JSON.stringify(scores)}${contextSection}
+- Result message: ${persona.resultMessage}
+- Key settings: mastery threshold ${persona.masteryThreshold}%, ${persona.messagePersonality} personality, ${persona.showStudyPlanRollup ? "study plan visible" : "no study plan rollup"}, ${persona.gradedParticipationEnabled ? "graded participation" : "ungraded participation"}${contextSection}
 
 Write a personalized 2-3 paragraph blurb that:
 1. Celebrates their result with BuzzFeed-results-page energy
