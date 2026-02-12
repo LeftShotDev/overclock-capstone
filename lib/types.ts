@@ -38,14 +38,8 @@ export const CoursewareSettingSchema = z.object({
 });
 export type CoursewareSetting = z.infer<typeof CoursewareSettingSchema>;
 
-export interface QuizState {
-  currentQuestionIndex: number;
-  answers: QuizAnswer[];
-  isComplete: boolean;
+export interface QuizResult {
+  topPersonaId: string;
+  scores: Record<string, number>;
+  ranking: string[];
 }
-
-export type FlowPhase =
-  | "quiz"
-  | "persona-reveal"
-  | "courseware-walkthrough"
-  | "complete";

@@ -1,13 +1,6 @@
-import { tool } from "@langchain/core/tools";
-import { z } from "zod";
+import type { TeachingPersona } from "@/lib/types";
 
-const PERSONAS: Record<string, {
-  id: string;
-  name: string;
-  description: string;
-  traits: string[];
-  communicationStyle: string;
-}> = {
+export const PERSONAS: Record<string, TeachingPersona> = {
   "the-architect": {
     id: "the-architect",
     name: "The Architect",
@@ -45,37 +38,3 @@ const PERSONAS: Record<string, {
       "Precise and substantive. You provide rich context and encourage deep reading. Your discussions are Socratic and thought-provoking.",
   },
 };
-
-export const determinePersona = tool(
-  async ({ topPersonaId }: { topPersonaId: string }) => {
-    const persona = PERSONAS[topPersonaId] || PERSONAS["the-architect"];
-    return JSON.stringify(persona);
-  },
-  {
-    name: "determine_persona",
-    description:
-      "Look up the full persona details by persona ID. Returns the persona's name, description, traits, and communication style.",
-    schema: z.object({
-      topPersonaId: z
-        .string()
-        .describe("The ID of the top-scoring persona from quiz results"),
-    }),
-  }
-);
-
-export const getPersonaDetails = tool(
-  async ({ personaId }: { personaId: string }) => {
-    const persona = PERSONAS[personaId];
-    if (!persona) {
-      return JSON.stringify({ error: `Persona '${personaId}' not found` });
-    }
-    return JSON.stringify(persona);
-  },
-  {
-    name: "get_persona_details",
-    description: "Get detailed information about a specific teaching persona.",
-    schema: z.object({
-      personaId: z.string().describe("The persona ID to look up"),
-    }),
-  }
-);

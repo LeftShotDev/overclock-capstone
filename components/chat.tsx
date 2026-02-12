@@ -6,21 +6,43 @@ import { ChatMessage } from "@/components/chat-message";
 import { ChatInput } from "@/components/chat-input";
 import { useScrollToBottom } from "@/hooks/use-scroll-to-bottom";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
-export function Chat() {
+interface ChatProps {
+  title?: string;
+  description?: string;
+  placeholder?: string;
+  emptyMessage?: string;
+  body?: Record<string, unknown>;
+  className?: string;
+}
+
+export function Chat({
+  title = "Chat",
+  description,
+  placeholder = "Type a message...",
+  emptyMessage = "Send a message to get started.",
+  body,
+  className,
+}: ChatProps) {
   const { messages, status, sendMessage, error } = useChat();
   const isLoading = status === "streaming" || status === "submitted";
 
   const scrollRef = useScrollToBottom<HTMLDivElement>([messages]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-2rem)] max-w-2xl mx-auto border rounded-xl overflow-hidden bg-background shadow-lg">
+    <div
+      className={cn(
+        "flex flex-col border rounded-xl overflow-hidden bg-background shadow-sm",
+        className
+      )}
+    >
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <div>
-          <h1 className="text-lg font-semibold">Teaching Persona Quiz</h1>
-          <p className="text-sm text-muted-foreground">
-            Discover your teaching style
-          </p>
+          <h2 className="text-base font-semibold">{title}</h2>
+          {description && (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          )}
         </div>
         <Badge variant={isLoading ? "default" : "outline"}>
           {isLoading ? "Thinking..." : "Ready"}
@@ -30,17 +52,8 @@ export function Chat() {
       <ScrollArea ref={scrollRef} className="flex-1 p-4">
         <div className="flex flex-col gap-4">
           {messages.length === 0 && (
-            <div className="text-center text-muted-foreground py-16">
-              <p className="text-2xl font-semibold mb-2">
-                What Kind of Professor Are You?
-              </p>
-              <p className="text-sm">
-                Take this quick quiz to discover your teaching persona and get
-                personalized courseware recommendations.
-              </p>
-              <p className="text-sm mt-4 text-muted-foreground/70">
-                Type anything to get started!
-              </p>
+            <div className="text-center text-muted-foreground py-8">
+              <p className="text-sm">{emptyMessage}</p>
             </div>
           )}
           {messages.map((message) => (
@@ -55,7 +68,11 @@ export function Chat() {
         </div>
       )}
 
-      <ChatInput onSend={(text) => sendMessage({ text })} isLoading={isLoading} />
+      <ChatInput
+        onSend={(text) => sendMessage({ text }, { body })}
+        isLoading={isLoading}
+        placeholder={placeholder}
+      />
     </div>
   );
 }

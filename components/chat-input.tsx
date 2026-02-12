@@ -8,9 +8,10 @@ import { ArrowUp } from "lucide-react";
 interface ChatInputProps {
   onSend: (text: string) => void;
   isLoading: boolean;
+  placeholder?: string;
 }
 
-export function ChatInput({ onSend, isLoading }: ChatInputProps) {
+export function ChatInput({ onSend, isLoading, placeholder = "Type your answer..." }: ChatInputProps) {
   const [input, setInput] = useState("");
 
   const handleSubmit = (e: FormEvent) => {
@@ -25,7 +26,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
       <Input
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        placeholder="Type your answer..."
+        placeholder={placeholder}
         disabled={isLoading}
         className="flex-1"
         autoFocus

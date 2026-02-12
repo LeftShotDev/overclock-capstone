@@ -1,44 +1,42 @@
 # Teaching Persona Quiz
 
-A multi-agent AI application that helps college instructors discover their teaching persona through a BuzzFeed-style quiz, then walks them through personalized courseware settings.
+A web application that helps college instructors discover their teaching persona through a BuzzFeed-style quiz, then guides them through personalized courseware settings.
 
 ## How It Works
 
-The app runs a three-phase conversational flow, each handled by a specialized AI agent:
+The app has three pages that form a sequential flow:
 
-1. **Quiz** — An engaging personality quiz asks instructors about their teaching style, classroom preferences, and values
-2. **Persona Reveal** — Quiz results are scored and the instructor's teaching persona is revealed (The Architect, The Coach, The Explorer, or The Sage)
-3. **Courseware Walkthrough** — The assigned persona guides the instructor through courseware settings, recommending configurations that match their style
+1. **Quiz** (`/quiz`) — A multi-step personality quiz with one question per screen. Instructors click through options about their teaching style, classroom preferences, and values. No AI involved — pure web form with client-side scoring.
+
+2. **Persona Reveal** (`/results`) — A results page showing the instructor's teaching persona (The Architect, The Coach, The Explorer, or The Sage) with a designed persona card and an AI-generated personalized blurb streamed from Claude.
+
+3. **Settings** (`/settings`) — Courseware setting cards with dropdowns to change values, plus a chat panel where an AI assistant (in-character as the persona) explains settings and helps describe changes.
 
 ## Architecture
 
 ```
-Next.js Frontend (Vercel AI SDK — useChat, streaming)
-        │
-   POST /api/chat
-        │
-  LangGraph.js Supervisor (routes between agents)
-        │
-  ┌─────┼─────────┐
-  │     │         │
-Quiz  Persona  Courseware
-Agent  Agent    Agent
+/quiz          → Pure web form (no AI)
+                 Client-side scoring via lib/quiz-scoring.ts
+
+/results       → Static persona card + streamed AI blurb
+                 POST /api/persona → Claude (one-shot streamText)
+
+/settings      → Setting cards (direct manipulation)
+               + Chat panel for Q&A
+                 POST /api/chat → LangGraph courseware agent (Gemini)
 ```
 
-- **Supervisor** (OpenAI GPT-4o) — orchestrates the flow and delegates to the right agent
-- **Quiz Agent** (OpenAI GPT-4o-mini) — manages the quiz, presents questions, tracks answers
-- **Persona Agent** (Anthropic Claude) — delivers a dramatic persona reveal
-- **Courseware Agent** (Google Gemini) — walks through settings in-character as the persona
-
-The frontend uses the Vercel AI SDK `useChat` hook for real-time streaming. The `@ai-sdk/langchain` adapter bridges AI SDK's streaming protocol with LangGraph's agent output.
+**LLM usage is minimal by design:**
+- **Anthropic Claude** — Single `streamText` call for the personalized persona blurb
+- **Google Gemini** — LangGraph ReAct agent for the settings chat assistant
 
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router, Turbopack)
-- **Agent Orchestration**: LangGraph.js with `@langchain/langgraph-supervisor`
-- **Frontend Streaming**: Vercel AI SDK v6
-- **LLM Providers**: OpenAI, Anthropic, Google Gemini
+- **AI**: Vercel AI SDK v6, LangGraph.js (courseware agent only)
+- **LLM Providers**: Anthropic (persona blurb), Google Gemini (settings chat)
 - **UI**: Tailwind CSS v4, shadcn/ui
+- **State**: React Context + localStorage (quiz answers persist across pages)
 - **Validation**: Zod v4
 
 ## Getting Started
@@ -54,49 +52,58 @@ cp .env.example .env.local
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and type anything to start the quiz.
+Open [http://localhost:3000](http://localhost:3000) and click "Start the Quiz."
 
 ### Required Environment Variables
 
-| Variable | Provider |
+| Variable | Used For |
 |---|---|
-| `OPENAI_API_KEY` | OpenAI (supervisor + quiz agent) |
-| `ANTHROPIC_API_KEY` | Anthropic (persona agent) |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Google (courseware agent) |
+| `ANTHROPIC_API_KEY` | Persona blurb generation (results page) |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Settings chat assistant |
 
 ## Project Structure
 
 ```
 app/
-  api/chat/route.ts       → API route bridging AI SDK ↔ LangGraph
-  page.tsx                 → Main page rendering the chat UI
+  page.tsx                → Landing page (start quiz or continue)
+  quiz/page.tsx           → Multi-step quiz form
+  results/page.tsx        → Persona reveal + AI blurb
+  settings/page.tsx       → Setting cards + chat panel
+  api/
+    persona/route.ts      → One-shot Claude streamText endpoint
+    chat/route.ts         → LangGraph courseware agent endpoint
 components/
-  chat.tsx                 → Chat container (useChat hook, message list)
-  chat-message.tsx         → Message bubble component
-  chat-input.tsx           → Input form with send button
-  ui/                      → shadcn/ui primitives
+  quiz-option-card.tsx    → Clickable quiz option
+  persona-card.tsx        → Persona reveal card with traits
+  setting-card.tsx        → Courseware setting with select dropdown
+  chat.tsx                → Configurable chat container (useChat)
+  chat-message.tsx        → Message bubble component
+  chat-input.tsx          → Input form with send button
+  ui/                     → shadcn/ui primitives
 lib/
-  types.ts                 → Shared Zod schemas and TypeScript types
+  quiz-context.tsx        → React Context + localStorage for quiz state
+  quiz-scoring.ts         → Pure scoring function
+  types.ts                → Shared Zod schemas and TypeScript types
+  data/
+    quiz-questions.ts     → Quiz question content + persona weights
+    personas.ts           → Teaching persona definitions
+    courseware-settings.ts → Mock courseware settings
   agents/
-    supervisor.ts          → Supervisor graph (lazy-initialized)
-    quiz-agent.ts          → Quiz flow agent
-    persona-agent.ts       → Persona reveal agent
-    courseware-agent.ts     → Courseware walkthrough agent
+    index.ts              → Exports courseware graph (lazy-initialized)
+    courseware-agent.ts    → Gemini-powered settings assistant
     tools/
-      quiz-tools.ts        → Quiz questions + scoring logic
-      persona-tools.ts     → Persona definitions + lookup
-      courseware-tools.ts   → Mock courseware settings API
+      courseware-tools.ts  → LangChain tools for settings lookup/update
 ```
 
 ## Deployment
 
-The app is configured for Vercel deployment with no additional setup. Push to GitHub and connect the repo in Vercel. Add the three API key environment variables in your Vercel project settings.
+The app is configured for Vercel deployment with no additional setup. Push to GitHub, connect the repo in Vercel, and add your API key environment variables in the Vercel project settings.
 
 ## Customization
 
-All content is isolated in the `lib/agents/tools/` directory:
+All content is in the `lib/data/` directory:
 
-- **Quiz questions** — Edit `quiz-tools.ts` to change questions, options, and persona weight scoring
-- **Personas** — Edit `persona-tools.ts` to add/modify teaching personas
-- **Courseware settings** — Edit `courseware-tools.ts` to match your actual courseware API
-- **Agent behavior** — Each agent's system prompt is in its own file under `lib/agents/`
+- **Quiz questions** — Edit `quiz-questions.ts` to change questions, options, and persona weight scoring
+- **Personas** — Edit `personas.ts` to add/modify teaching personas
+- **Courseware settings** — Edit `courseware-settings.ts` to match your actual courseware API
+- **Settings chat behavior** — Edit the agent prompt in `lib/agents/courseware-agent.ts`
