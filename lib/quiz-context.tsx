@@ -8,11 +8,22 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import type { QuizAnswer, QuizResult } from "@/lib/types";
+import type {
+  QuizAnswer,
+  QuizResult,
+  ConstraintAnswer,
+  SyllabusData,
+} from "@/lib/types";
 
 interface QuizContextValue {
   answers: QuizAnswer[];
   addAnswer: (answer: QuizAnswer) => void;
+  constraintAnswers: ConstraintAnswer[];
+  addConstraintAnswer: (answer: ConstraintAnswer) => void;
+  syllabusData: SyllabusData | null;
+  setSyllabusData: (data: SyllabusData) => void;
+  currentStepIndex: number;
+  setCurrentStepIndex: (index: number) => void;
   quizResult: QuizResult | null;
   setQuizResult: (result: QuizResult) => void;
   reset: () => void;
@@ -25,6 +36,11 @@ const STORAGE_KEY = "teaching-persona-quiz";
 
 export function QuizProvider({ children }: { children: ReactNode }) {
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
+  const [constraintAnswers, setConstraintAnswers] = useState<
+    ConstraintAnswer[]
+  >([]);
+  const [syllabusData, setSyllabusData] = useState<SyllabusData | null>(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
@@ -34,6 +50,9 @@ export function QuizProvider({ children }: { children: ReactNode }) {
       if (stored) {
         const parsed = JSON.parse(stored);
         setAnswers(parsed.answers || []);
+        setConstraintAnswers(parsed.constraintAnswers || []);
+        setSyllabusData(parsed.syllabusData || null);
+        setCurrentStepIndex(parsed.currentStepIndex || 0);
         setQuizResult(parsed.quizResult || null);
       }
     } catch {
@@ -46,24 +65,50 @@ export function QuizProvider({ children }: { children: ReactNode }) {
     if (hydrated) {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ answers, quizResult })
+        JSON.stringify({
+          answers,
+          constraintAnswers,
+          syllabusData,
+          currentStepIndex,
+          quizResult,
+        })
       );
     }
-  }, [answers, quizResult, hydrated]);
+  }, [answers, constraintAnswers, syllabusData, currentStepIndex, quizResult, hydrated]);
 
   const addAnswer = useCallback((answer: QuizAnswer) => {
     setAnswers((prev) => [...prev, answer]);
   }, []);
 
+  const addConstraintAnswer = useCallback((answer: ConstraintAnswer) => {
+    setConstraintAnswers((prev) => [...prev, answer]);
+  }, []);
+
   const reset = useCallback(() => {
     setAnswers([]);
+    setConstraintAnswers([]);
+    setSyllabusData(null);
+    setCurrentStepIndex(0);
     setQuizResult(null);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
   return (
     <QuizContext.Provider
-      value={{ answers, addAnswer, quizResult, setQuizResult, reset, hydrated }}
+      value={{
+        answers,
+        addAnswer,
+        constraintAnswers,
+        addConstraintAnswer,
+        syllabusData,
+        setSyllabusData,
+        currentStepIndex,
+        setCurrentStepIndex,
+        quizResult,
+        setQuizResult,
+        reset,
+        hydrated,
+      }}
     >
       {children}
     </QuizContext.Provider>

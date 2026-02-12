@@ -2,42 +2,81 @@
 
 import { useRouter } from "next/navigation";
 import { useQuiz } from "@/lib/quiz-context";
-import { QUIZ_QUESTIONS } from "@/lib/data/quiz-questions";
+import { QUIZ_STEPS } from "@/lib/data/quiz-steps";
 import { calculateQuizResults } from "@/lib/quiz-scoring";
 import { QuizOptionCard } from "@/components/quiz-option-card";
+import { ConstraintQuestionStep } from "@/components/constraint-question-step";
+import { SyllabusUploadStep } from "@/components/syllabus-upload-step";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 
 export default function QuizPage() {
   const router = useRouter();
-  const { answers, addAnswer, setQuizResult, reset, hydrated } = useQuiz();
+  const {
+    answers,
+    addAnswer,
+    addConstraintAnswer,
+    setQuizResult,
+    currentStepIndex,
+    setCurrentStepIndex,
+    reset,
+    hydrated,
+  } = useQuiz();
 
   if (!hydrated) return null;
 
-  const currentIndex = answers.length;
-  const totalQuestions = QUIZ_QUESTIONS.length;
-  const isComplete = currentIndex >= totalQuestions;
+  const totalSteps = QUIZ_STEPS.length;
 
-  if (isComplete) {
+  if (currentStepIndex >= totalSteps) {
     router.push("/results");
     return null;
   }
 
-  const question = QUIZ_QUESTIONS[currentIndex];
-  const progress = (currentIndex / totalQuestions) * 100;
+  const step = QUIZ_STEPS[currentStepIndex];
+  const progress = (currentStepIndex / totalSteps) * 100;
 
-  function handleAnswer(value: string) {
-    addAnswer({ questionId: question.id, selectedValue: value });
+  function finishQuiz() {
+    const result = calculateQuizResults(answers);
+    setQuizResult(result);
+    router.push("/results");
+  }
 
-    if (currentIndex + 1 >= totalQuestions) {
-      const allAnswers = [
-        ...answers,
-        { questionId: question.id, selectedValue: value },
-      ];
+  function advance() {
+    const nextIndex = currentStepIndex + 1;
+    if (nextIndex >= totalSteps) {
+      // Compute results from persona answers only, then navigate
+      const allAnswers = answers;
       const result = calculateQuizResults(allAnswers);
       setQuizResult(result);
+      setCurrentStepIndex(nextIndex);
       router.push("/results");
+    } else {
+      setCurrentStepIndex(nextIndex);
     }
+  }
+
+  function handlePersonaAnswer(value: string) {
+    if (step.type !== "persona") return;
+    const updatedAnswers = [
+      ...answers,
+      { questionId: step.question.id, selectedValue: value },
+    ];
+    addAnswer({ questionId: step.question.id, selectedValue: value });
+
+    const nextIndex = currentStepIndex + 1;
+    if (nextIndex >= totalSteps) {
+      const result = calculateQuizResults(updatedAnswers);
+      setQuizResult(result);
+      setCurrentStepIndex(nextIndex);
+      router.push("/results");
+    } else {
+      setCurrentStepIndex(nextIndex);
+    }
+  }
+
+  function handleConstraintAnswer(constraintKey: string, value: string) {
+    addConstraintAnswer({ constraintKey, selectedValue: value });
+    advance();
   }
 
   return (
@@ -46,7 +85,7 @@ export default function QuizPage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
-              Question {currentIndex + 1} of {totalQuestions}
+              Step {currentStepIndex + 1} of {totalSteps}
             </span>
             <Button
               variant="ghost"
@@ -60,23 +99,35 @@ export default function QuizPage() {
           <Progress value={progress} className="h-2" />
         </div>
 
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold tracking-tight">
-            {question.question}
-          </h2>
-
-          <div className="grid gap-3">
-            {question.options.map((option, i) => (
-              <QuizOptionCard
-                key={option.value}
-                label={option.label}
-                value={option.value}
-                index={i}
-                onClick={handleAnswer}
-              />
-            ))}
+        {step.type === "persona" && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold tracking-tight">
+              {step.question.question}
+            </h2>
+            <div className="grid gap-3">
+              {step.question.options.map((option, i) => (
+                <QuizOptionCard
+                  key={option.value}
+                  label={option.label}
+                  value={option.value}
+                  index={i}
+                  onClick={handlePersonaAnswer}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {step.type === "constraint" && (
+          <ConstraintQuestionStep
+            question={step.question}
+            onAnswer={handleConstraintAnswer}
+          />
+        )}
+
+        {step.type === "syllabus-upload" && (
+          <SyllabusUploadStep onComplete={finishQuiz} onSkip={finishQuiz} />
+        )}
       </div>
     </main>
   );

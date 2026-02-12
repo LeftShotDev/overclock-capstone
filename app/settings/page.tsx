@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuiz } from "@/lib/quiz-context";
 import { PERSONAS } from "@/lib/data/personas";
 import { COURSEWARE_SETTINGS } from "@/lib/data/courseware-settings";
+import { computeRecommendations } from "@/lib/recommendation-engine";
 import { SettingCard } from "@/components/setting-card";
 import { Chat } from "@/components/chat";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,21 @@ import {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { quizResult, hydrated } = useQuiz();
+  const { quizResult, constraintAnswers, syllabusData, hydrated } = useQuiz();
+
+  const recommendations = useMemo(() => {
+    if (!quizResult) return {};
+    return computeRecommendations({ quizResult, constraintAnswers, syllabusData });
+  }, [quizResult, constraintAnswers, syllabusData]);
+
+  const dynamicSettings = useMemo(
+    () =>
+      COURSEWARE_SETTINGS.map((s) => ({
+        ...s,
+        recommendedValue: recommendations[s.id] ?? s.recommendedValue,
+      })),
+    [recommendations]
+  );
 
   const [settingValues, setSettingValues] = useState<Record<string, string>>(
     () =>
@@ -48,7 +63,6 @@ export default function SettingsPage() {
   }
 
   function handleSave() {
-    // In a real app, this would call an API to persist settings
     setSaved(true);
   }
 
@@ -66,12 +80,14 @@ export default function SettingsPage() {
             <span className="font-medium text-foreground">
               {persona?.name}
             </span>
-            . Recommended values are tailored to your teaching style.
+            . Recommended values are tailored to your teaching style
+            {constraintAnswers.length > 0 && " and course constraints"}
+            {syllabusData && " and syllabus"}.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {COURSEWARE_SETTINGS.map((setting) => (
+          {dynamicSettings.map((setting) => (
             <SettingCard
               key={setting.id}
               setting={setting}
@@ -118,7 +134,11 @@ export default function SettingsPage() {
           description={`Ask me about any setting — I'll explain it as ${persona?.name}`}
           placeholder="Ask about a setting or describe changes you'd like..."
           emptyMessage="Have questions about a setting? Ask me and I'll explain it in your persona's style."
-          body={{ personaId: quizResult.topPersonaId }}
+          body={{
+            personaId: quizResult.topPersonaId,
+            constraintAnswers,
+            syllabusData,
+          }}
           className="h-[400px]"
         />
       </div>

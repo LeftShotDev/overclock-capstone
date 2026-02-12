@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 
 export default function ResultsPage() {
   const router = useRouter();
-  const { quizResult, hydrated } = useQuiz();
+  const { quizResult, constraintAnswers, syllabusData, hydrated } = useQuiz();
   const [blurb, setBlurb] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
 
@@ -32,6 +32,8 @@ export default function ResultsPage() {
           body: JSON.stringify({
             personaId: quizResult!.topPersonaId,
             scores: quizResult!.scores,
+            constraintAnswers,
+            syllabusData,
           }),
           signal: controller.signal,
         });

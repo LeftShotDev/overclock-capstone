@@ -43,3 +43,44 @@ export interface QuizResult {
   scores: Record<string, number>;
   ranking: string[];
 }
+
+// Constraint questions — factual course logistics, no persona weights
+export const ConstraintQuestionSchema = z.object({
+  id: z.string(),
+  question: z.string(),
+  type: z.literal("constraint"),
+  constraintKey: z.string(),
+  options: z.array(
+    z.object({
+      label: z.string(),
+      value: z.string(),
+    })
+  ),
+});
+export type ConstraintQuestion = z.infer<typeof ConstraintQuestionSchema>;
+
+export const ConstraintAnswerSchema = z.object({
+  constraintKey: z.string(),
+  selectedValue: z.string(),
+});
+export type ConstraintAnswer = z.infer<typeof ConstraintAnswerSchema>;
+
+// Syllabus extraction output
+export const SyllabusDataSchema = z.object({
+  courseDuration: z.string().optional(),
+  assignmentTypes: z.array(z.string()).optional(),
+  gradingPolicies: z.string().optional(),
+  discussionExpectations: z.string().optional(),
+  keyDates: z
+    .array(z.object({ date: z.string(), description: z.string() }))
+    .optional(),
+  moduleCount: z.number().optional(),
+  additionalNotes: z.string().optional(),
+});
+export type SyllabusData = z.infer<typeof SyllabusDataSchema>;
+
+// Discriminated union for quiz step rendering
+export type QuizStep =
+  | { type: "persona"; question: QuizQuestion }
+  | { type: "constraint"; question: ConstraintQuestion }
+  | { type: "syllabus-upload" };
