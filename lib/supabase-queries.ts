@@ -63,6 +63,36 @@ export async function fetchCharactersByPersona(personaId: string): Promise<Chara
   }
 }
 
+export async function fetchCharacterById(
+  characterId: string
+): Promise<Character | null> {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from("characters")
+      .select("*")
+      .eq("id", characterId)
+      .single();
+
+    if (error || !data) return null;
+
+    return {
+      id: data.id,
+      personaId: data.persona_id,
+      name: data.name,
+      work: data.work,
+      tagline: data.tagline,
+      description: data.description,
+      voiceProfile: data.voice_profile,
+      sortOrder: data.sort_order,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function writeQuizResult(params: {
   personaId: string;
   characterId: string | null;
@@ -92,5 +122,27 @@ export async function writeQuizResult(params: {
     return data.id;
   } catch {
     return null;
+  }
+}
+
+export async function writeMessageTemplates(params: {
+  quizResultId: string;
+  characterId: string;
+  templates: { templateType: string; variants: string[] }[];
+}): Promise<void> {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const rows = params.templates.map((t) => ({
+      quiz_result_id: params.quizResultId,
+      template_type: t.templateType,
+      character_id: params.characterId,
+      variants: t.variants,
+    }));
+
+    await supabase.from("message_templates").insert(rows);
+  } catch {
+    // Best-effort write
   }
 }

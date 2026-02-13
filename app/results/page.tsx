@@ -21,6 +21,7 @@ export default function ResultsPage() {
     syllabusData,
     selectedCharacterId,
     setSelectedCharacterId,
+    setGeneratedTemplates,
     hydrated,
   } = useQuiz();
   const [blurb, setBlurb] = useState("");
@@ -94,9 +95,9 @@ export default function ResultsPage() {
   }
 
   const handleContinue = async () => {
-    // Write quiz result to Supabase (best-effort)
+    // Write quiz result to Supabase — await to get the ID for template generation
     const recommendations = computeRecommendations({ quizResult });
-    writeQuizResult({
+    const quizResultId = await writeQuizResult({
       personaId: quizResult.topPersonaId,
       characterId: selectedCharacterId,
       appliedSettings: recommendations,
@@ -104,6 +105,43 @@ export default function ResultsPage() {
       constraintAnswers,
       syllabusData,
     });
+
+    // Fire template generation (non-blocking)
+    if (selectedCharacterId) {
+      setGeneratedTemplates({
+        templates: [],
+        characterId: selectedCharacterId,
+        personaId: quizResult.topPersonaId,
+        status: "loading",
+      });
+
+      fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personaId: quizResult.topPersonaId,
+          characterId: selectedCharacterId,
+          quizResultId,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setGeneratedTemplates({
+            templates: data.templates,
+            characterId: selectedCharacterId,
+            personaId: quizResult.topPersonaId,
+            status: "success",
+          });
+        })
+        .catch(() => {
+          setGeneratedTemplates({
+            templates: [],
+            characterId: selectedCharacterId,
+            personaId: quizResult.topPersonaId,
+            status: "error",
+          });
+        });
+    }
 
     router.push("/settings");
   };

@@ -13,6 +13,7 @@ import type {
   QuizResult,
   ConstraintAnswer,
   SyllabusData,
+  GeneratedTemplatesResult,
 } from "@/lib/types";
 
 interface QuizContextValue {
@@ -28,6 +29,8 @@ interface QuizContextValue {
   setQuizResult: (result: QuizResult) => void;
   selectedCharacterId: string | null;
   setSelectedCharacterId: (id: string | null) => void;
+  generatedTemplates: GeneratedTemplatesResult | null;
+  setGeneratedTemplates: (result: GeneratedTemplatesResult | null) => void;
   reset: () => void;
   hydrated: boolean;
 }
@@ -45,6 +48,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [generatedTemplates, setGeneratedTemplates] = useState<GeneratedTemplatesResult | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -58,6 +62,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
         setCurrentStepIndex(parsed.currentStepIndex || 0);
         setQuizResult(parsed.quizResult || null);
         setSelectedCharacterId(parsed.selectedCharacterId || null);
+        setGeneratedTemplates(parsed.generatedTemplates || null);
       }
     } catch {
       // Ignore parse errors
@@ -76,10 +81,11 @@ export function QuizProvider({ children }: { children: ReactNode }) {
           currentStepIndex,
           quizResult,
           selectedCharacterId,
+          generatedTemplates,
         })
       );
     }
-  }, [answers, constraintAnswers, syllabusData, currentStepIndex, quizResult, selectedCharacterId, hydrated]);
+  }, [answers, constraintAnswers, syllabusData, currentStepIndex, quizResult, selectedCharacterId, generatedTemplates, hydrated]);
 
   const addAnswer = useCallback((answer: QuizAnswer) => {
     setAnswers((prev) => [...prev, answer]);
@@ -96,6 +102,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
     setCurrentStepIndex(0);
     setQuizResult(null);
     setSelectedCharacterId(null);
+    setGeneratedTemplates(null);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
@@ -114,6 +121,8 @@ export function QuizProvider({ children }: { children: ReactNode }) {
         setQuizResult,
         selectedCharacterId,
         setSelectedCharacterId,
+        generatedTemplates,
+        setGeneratedTemplates,
         reset,
         hydrated,
       }}

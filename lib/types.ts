@@ -104,3 +104,20 @@ export type QuizStep =
   | { type: "persona"; question: QuizQuestion }
   | { type: "constraint"; question: ConstraintQuestion }
   | { type: "syllabus-upload" };
+
+// Generated message templates
+export const GeneratedTemplateSchema = z.object({
+  templateType: z.string(),
+  variants: z.array(z.string()),
+});
+export type GeneratedTemplate = z.infer<typeof GeneratedTemplateSchema>;
+
+export const GeneratedTemplatesResultSchema = z.object({
+  templates: z.array(GeneratedTemplateSchema),
+  characterId: z.string(),
+  personaId: z.string(),
+  status: z.enum(["loading", "success", "error"]),
+});
+export type GeneratedTemplatesResult = z.infer<
+  typeof GeneratedTemplatesResultSchema
+>;

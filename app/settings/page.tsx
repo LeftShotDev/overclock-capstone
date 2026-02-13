@@ -7,6 +7,7 @@ import { PERSONAS } from "@/lib/data/personas";
 import { COURSEWARE_SETTINGS } from "@/lib/data/courseware-settings";
 import { computeRecommendations } from "@/lib/recommendation-engine";
 import { SettingCard } from "@/components/setting-card";
+import { MessageTemplateSection } from "@/components/message-template-section";
 import { Chat } from "@/components/chat";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -26,7 +27,13 @@ type SettingValue = string | boolean | number | string[];
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { quizResult, selectedCharacterId, hydrated } = useQuiz();
+  const {
+    quizResult,
+    selectedCharacterId,
+    generatedTemplates,
+    setGeneratedTemplates,
+    hydrated,
+  } = useQuiz();
 
   const recommendations = useMemo(() => {
     if (!quizResult) return {};
@@ -52,6 +59,7 @@ export default function SettingsPage() {
       )
   );
   const [saved, setSaved] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   if (!hydrated) return null;
 
@@ -69,6 +77,44 @@ export default function SettingsPage() {
 
   function handleSave() {
     setSaved(true);
+  }
+
+  async function handleRegenerate() {
+    if (!quizResult || !selectedCharacterId) return;
+    setIsRegenerating(true);
+    setGeneratedTemplates({
+      templates: [],
+      characterId: selectedCharacterId,
+      personaId: quizResult.topPersonaId,
+      status: "loading",
+    });
+
+    try {
+      const res = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personaId: quizResult.topPersonaId,
+          characterId: selectedCharacterId,
+        }),
+      });
+      const data = await res.json();
+      setGeneratedTemplates({
+        templates: data.templates,
+        characterId: selectedCharacterId,
+        personaId: quizResult.topPersonaId,
+        status: "success",
+      });
+    } catch {
+      setGeneratedTemplates({
+        templates: [],
+        characterId: selectedCharacterId,
+        personaId: quizResult.topPersonaId,
+        status: "error",
+      });
+    } finally {
+      setIsRegenerating(false);
+    }
   }
 
   const changedCount = COURSEWARE_SETTINGS.filter(
@@ -131,6 +177,17 @@ export default function SettingsPage() {
             Back to Results
           </Button>
         </div>
+
+        {selectedCharacterId && (
+          <>
+            <Separator />
+            <MessageTemplateSection
+              templatesResult={generatedTemplates}
+              onRegenerate={handleRegenerate}
+              isRegenerating={isRegenerating}
+            />
+          </>
+        )}
 
         <Separator />
 
