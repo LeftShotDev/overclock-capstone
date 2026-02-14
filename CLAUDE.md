@@ -73,7 +73,6 @@ Next.js 16 App Router with Supabase Auth (email/password). Protected by middlewa
 
 **Pages**:
 - `/questions` — CRUD for quiz questions (persona + constraint), reorder, toggle active
-- `/results` — Quiz results dashboard with persona distribution and expandable session details
 - `/personas` — Edit persona settings and character voice profiles
 - `/access-codes` — Generate/revoke access codes for gating quiz entry
 

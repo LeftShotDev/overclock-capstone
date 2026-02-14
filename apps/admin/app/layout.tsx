@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Admin Panel — Teaching Persona Quiz",
-  description: "Manage quiz questions, personas, results, and access codes",
+  description: "Manage quiz questions, personas, and access codes",
 };
 
 export default function RootLayout({

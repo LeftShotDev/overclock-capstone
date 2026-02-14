@@ -169,7 +169,6 @@ capstone/
 │       ├── app/
 │       │   ├── login/              Email/password auth
 │       │   ├── questions/          CRUD + reorder quiz questions
-│       │   ├── results/            Quiz results dashboard
 │       │   ├── personas/           Edit personas + characters
 │       │   └── access-codes/       Generate/revoke access codes
 │       └── lib/

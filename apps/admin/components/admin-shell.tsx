@@ -6,7 +6,6 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/button";
 import {
   ClipboardList,
-  BarChart3,
   Users,
   KeyRound,
   LogOut,
@@ -15,7 +14,6 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/questions", label: "Questions", icon: ClipboardList },
-  { href: "/results", label: "Results", icon: BarChart3 },
   { href: "/personas", label: "Personas", icon: Users },
   { href: "/access-codes", label: "Access Codes", icon: KeyRound },
 ];

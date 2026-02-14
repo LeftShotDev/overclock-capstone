@@ -103,51 +103,6 @@ export async function reorderQuestions(
 }
 
 // ============================================================
-// Quiz Results
-// ============================================================
-
-export async function getResults(page = 0, pageSize = 20) {
-  const supabase = createSupabaseServiceClient();
-
-  const { count } = await supabase
-    .from("quiz_results")
-    .select("*", { count: "exact", head: true });
-
-  const { data, error } = await supabase
-    .from("quiz_results")
-    .select(
-      `
-      *,
-      personas (name),
-      characters (name)
-    `
-    )
-    .order("created_at", { ascending: false })
-    .range(page * pageSize, (page + 1) * pageSize - 1);
-
-  if (error) throw new Error(error.message);
-  return { results: data ?? [], total: count ?? 0 };
-}
-
-export async function getResultStats() {
-  const supabase = createSupabaseServiceClient();
-
-  const { data, error } = await supabase
-    .from("quiz_results")
-    .select("persona_id");
-
-  if (error) throw new Error(error.message);
-
-  const total = data?.length ?? 0;
-  const distribution: Record<string, number> = {};
-  for (const row of data ?? []) {
-    distribution[row.persona_id] = (distribution[row.persona_id] || 0) + 1;
-  }
-
-  return { total, distribution };
-}
-
-// ============================================================
 // Personas
 // ============================================================
 
