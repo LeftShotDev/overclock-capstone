@@ -8,6 +8,7 @@ import {
   Layers,
   ClipboardList,
   Users,
+  Drama,
   KeyRound,
   LogOut,
 } from "lucide-react";
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { href: "/quizzes", label: "Quizzes", icon: Layers },
   { href: "/questions", label: "Questions", icon: ClipboardList },
   { href: "/personas", label: "Personas", icon: Users },
+  { href: "/characters", label: "Characters", icon: Drama },
   { href: "/access-codes", label: "Access Codes", icon: KeyRound },
 ];
 

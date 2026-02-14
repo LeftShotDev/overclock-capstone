@@ -174,6 +174,8 @@ export async function updateCharacter(
     description?: string;
     voice_profile?: Record<string, unknown>;
     sort_order?: number;
+    sex?: string;
+    ethnicity?: string;
   }
 ) {
   const supabase = createSupabaseServiceClient();
@@ -183,6 +185,51 @@ export async function updateCharacter(
     .eq("id", id);
 
   if (error) throw new Error(error.message);
+  revalidatePath("/personas");
+  revalidatePath("/characters");
+}
+
+export async function getCharacters() {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("characters")
+    .select("*, personas(name)")
+    .order("persona_id")
+    .order("sort_order");
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function createCharacter(params: {
+  id: string;
+  persona_id: string;
+  name: string;
+  work: string;
+  tagline: string;
+  description: string;
+  voice_profile: Record<string, unknown>;
+  sort_order: number;
+  sex?: string;
+  ethnicity?: string;
+}) {
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase.from("characters").insert(params);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/characters");
+  revalidatePath("/personas");
+}
+
+export async function deleteCharacter(id: string) {
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase
+    .from("characters")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/characters");
   revalidatePath("/personas");
 }
 
