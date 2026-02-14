@@ -12,6 +12,7 @@ export async function getQuestions() {
   const { data, error } = await supabase
     .from("quiz_questions")
     .select("*")
+    .is("quiz_id", null)
     .order("sort_order");
 
   if (error) throw new Error(error.message);
@@ -248,4 +249,187 @@ export async function deleteAccessCode(id: string) {
 
   if (error) throw new Error(error.message);
   revalidatePath("/access-codes");
+}
+
+// ============================================================
+// Quizzes
+// ============================================================
+
+export async function getQuizzes() {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("quizzes")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  // Attach question counts per quiz
+  const quizzes = (data ?? []) as { id: string; name: string; description: string | null; slug: string; settings_schema: unknown[]; is_active: boolean; created_at: string; updated_at: string }[];
+  const quizIds = quizzes.map((q) => q.id);
+
+  if (quizIds.length > 0) {
+    const { data: questions } = await supabase
+      .from("quiz_questions")
+      .select("quiz_id, is_draft")
+      .in("quiz_id", quizIds);
+
+    const counts: Record<string, { total: number; drafts: number }> = {};
+    for (const q of (questions ?? []) as { quiz_id: string | null; is_draft: boolean }[]) {
+      if (!q.quiz_id) continue;
+      if (!counts[q.quiz_id]) counts[q.quiz_id] = { total: 0, drafts: 0 };
+      counts[q.quiz_id].total++;
+      if (q.is_draft) counts[q.quiz_id].drafts++;
+    }
+
+    return quizzes.map((quiz) => ({
+      ...quiz,
+      question_count: counts[quiz.id]?.total ?? 0,
+      draft_count: counts[quiz.id]?.drafts ?? 0,
+    }));
+  }
+
+  return quizzes.map((quiz) => ({
+    ...quiz,
+    question_count: 0,
+    draft_count: 0,
+  }));
+}
+
+export async function getQuiz(id: string) {
+  const supabase = createSupabaseServiceClient();
+  const { data: quiz, error: quizError } = await supabase
+    .from("quizzes")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (quizError) throw new Error(quizError.message);
+
+  const { data: questions, error: qError } = await supabase
+    .from("quiz_questions")
+    .select("*")
+    .eq("quiz_id", id)
+    .order("sort_order");
+
+  if (qError) throw new Error(qError.message);
+
+  return { quiz, questions: questions ?? [] };
+}
+
+export async function createQuiz(params: {
+  name: string;
+  description?: string;
+  slug: string;
+  settings_schema?: { id: string; name: string; description: string; type: string; options: { label: string; value: string }[] }[];
+}) {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("quizzes")
+    .insert({
+      name: params.name,
+      description: params.description || null,
+      slug: params.slug,
+      settings_schema: params.settings_schema ?? [],
+      is_active: true,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/quizzes");
+  return data;
+}
+
+export async function updateQuiz(
+  id: string,
+  params: {
+    name?: string;
+    description?: string | null;
+    slug?: string;
+    settings_schema?: { id: string; name: string; description: string; type: string; options: { label: string; value: string }[] }[];
+    is_active?: boolean;
+  }
+) {
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase
+    .from("quizzes")
+    .update({ ...params, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/quizzes");
+  revalidatePath(`/quizzes/${id}`);
+}
+
+export async function deleteQuiz(id: string) {
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase
+    .from("quizzes")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/quizzes");
+}
+
+// Quiz-scoped questions
+export async function getQuizQuestions(quizId: string) {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("quiz_questions")
+    .select("*")
+    .eq("quiz_id", quizId)
+    .order("is_draft", { ascending: false })
+    .order("sort_order");
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function createQuizQuestion(params: {
+  id: string;
+  question: string;
+  question_type: string;
+  options: { label: string; value: string }[];
+  sort_order: number;
+  quiz_id: string;
+  is_draft?: boolean;
+}) {
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase.from("quiz_questions").insert({
+    id: params.id,
+    question: params.question,
+    question_type: params.question_type,
+    options: params.options,
+    sort_order: params.sort_order,
+    quiz_id: params.quiz_id,
+    is_active: true,
+    is_draft: params.is_draft ?? false,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/quizzes/${params.quiz_id}/questions`);
+}
+
+export async function approveQuizQuestion(questionId: string, quizId: string) {
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase
+    .from("quiz_questions")
+    .update({ is_draft: false, updated_at: new Date().toISOString() })
+    .eq("id", questionId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/quizzes/${quizId}/questions`);
+}
+
+export async function deleteQuizQuestion(questionId: string, quizId: string) {
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase
+    .from("quiz_questions")
+    .delete()
+    .eq("id", questionId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/quizzes/${quizId}/questions`);
 }

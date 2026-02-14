@@ -121,3 +121,32 @@ export const GeneratedTemplatesResultSchema = z.object({
 export type GeneratedTemplatesResult = z.infer<
   typeof GeneratedTemplatesResultSchema
 >;
+
+// Quiz configuration — per-product settings schema
+export const SettingDefinitionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  type: z.enum(["select", "toggle", "multi-select"]),
+  options: z
+    .array(
+      z.object({
+        label: z.string(),
+        value: z.string(),
+      })
+    )
+    .default([]),
+});
+export type SettingDefinition = z.infer<typeof SettingDefinitionSchema>;
+
+export const QuizConfigSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  slug: z.string(),
+  settingsSchema: z.array(SettingDefinitionSchema),
+  isActive: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type QuizConfig = z.infer<typeof QuizConfigSchema>;

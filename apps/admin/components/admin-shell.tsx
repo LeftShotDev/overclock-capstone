@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/button";
 import {
+  Layers,
   ClipboardList,
   Users,
   KeyRound,
@@ -13,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
+  { href: "/quizzes", label: "Quizzes", icon: Layers },
   { href: "/questions", label: "Questions", icon: ClipboardList },
   { href: "/personas", label: "Personas", icon: Users },
   { href: "/access-codes", label: "Access Codes", icon: KeyRound },
