@@ -47,7 +47,7 @@ export function PersonasClient({ personas }: { personas: Persona[] }) {
                     {p.description.length > 120 ? "..." : ""}
                   </CardDescription>
                 </div>
-                <Link href={`/personas/${p.id}`}>
+                <Link href={`/onboarding/personas/${p.id}`}>
                   <Button variant="outline" size="sm">
                     <Pencil className="size-3" />
                     Edit

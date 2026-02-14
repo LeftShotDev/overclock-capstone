@@ -41,7 +41,7 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle className="text-2xl">Admin Login</CardTitle>
           <CardDescription>
-            Sign in to manage the Teaching Persona Quiz
+            Sign in to Company Admin
           </CardDescription>
         </CardHeader>
         <CardContent>

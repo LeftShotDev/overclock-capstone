@@ -67,7 +67,7 @@ export function QuizzesClient({
       });
       setShowCreateForm(false);
       setNewQuiz({ name: "", slug: "", description: "" });
-      router.push(`/quizzes/${quiz.id}`);
+      router.push(`/onboarding/quizzes/${quiz.id}`);
     });
   }
 
@@ -210,7 +210,7 @@ export function QuizzesClient({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  onClick={() => router.push(`/quizzes/${quiz.id}`)}
+                  onClick={() => router.push(`/onboarding/quizzes/${quiz.id}`)}
                   title="Edit Settings"
                 >
                   <Settings className="size-3" />
@@ -219,7 +219,7 @@ export function QuizzesClient({
                   variant="ghost"
                   size="icon-xs"
                   onClick={() =>
-                    router.push(`/quizzes/${quiz.id}/questions`)
+                    router.push(`/onboarding/quizzes/${quiz.id}/questions`)
                   }
                   title="Questions"
                 >

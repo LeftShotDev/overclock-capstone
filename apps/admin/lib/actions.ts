@@ -51,7 +51,7 @@ export async function createQuestion(params: {
   });
 
   if (error) throw new Error(error.message);
-  revalidatePath("/questions");
+  revalidatePath("/onboarding/questions");
 }
 
 export async function updateQuestion(
@@ -72,8 +72,8 @@ export async function updateQuestion(
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/questions");
-  revalidatePath(`/questions/${id}`);
+  revalidatePath("/onboarding/questions");
+  revalidatePath(`/onboarding/questions/${id}`);
 }
 
 export async function deleteQuestion(id: string) {
@@ -84,7 +84,7 @@ export async function deleteQuestion(id: string) {
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/questions");
+  revalidatePath("/onboarding/questions");
 }
 
 export async function reorderQuestions(
@@ -100,7 +100,7 @@ export async function reorderQuestions(
     if (error) throw new Error(error.message);
   }
 
-  revalidatePath("/questions");
+  revalidatePath("/onboarding/questions");
 }
 
 // ============================================================
@@ -161,8 +161,8 @@ export async function updatePersona(
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/personas");
-  revalidatePath(`/personas/${id}`);
+  revalidatePath("/onboarding/personas");
+  revalidatePath(`/onboarding/personas/${id}`);
 }
 
 export async function updateCharacter(
@@ -185,8 +185,8 @@ export async function updateCharacter(
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/personas");
-  revalidatePath("/characters");
+  revalidatePath("/onboarding/personas");
+  revalidatePath("/onboarding/characters");
 }
 
 export async function getCharacters() {
@@ -217,8 +217,8 @@ export async function createCharacter(params: {
   const { error } = await supabase.from("characters").insert(params);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/characters");
-  revalidatePath("/personas");
+  revalidatePath("/onboarding/characters");
+  revalidatePath("/onboarding/personas");
 }
 
 export async function deleteCharacter(id: string) {
@@ -229,8 +229,8 @@ export async function deleteCharacter(id: string) {
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/characters");
-  revalidatePath("/personas");
+  revalidatePath("/onboarding/characters");
+  revalidatePath("/onboarding/personas");
 }
 
 // ============================================================
@@ -265,7 +265,7 @@ export async function createAccessCode(params: {
   });
 
   if (error) throw new Error(error.message);
-  revalidatePath("/access-codes");
+  revalidatePath("/onboarding/access-codes");
 }
 
 export async function updateAccessCode(
@@ -284,7 +284,7 @@ export async function updateAccessCode(
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/access-codes");
+  revalidatePath("/onboarding/access-codes");
 }
 
 export async function deleteAccessCode(id: string) {
@@ -295,7 +295,7 @@ export async function deleteAccessCode(id: string) {
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/access-codes");
+  revalidatePath("/onboarding/access-codes");
 }
 
 // ============================================================
@@ -384,7 +384,7 @@ export async function createQuiz(params: {
     .single();
 
   if (error) throw new Error(error.message);
-  revalidatePath("/quizzes");
+  revalidatePath("/onboarding/quizzes");
   return data;
 }
 
@@ -405,8 +405,8 @@ export async function updateQuiz(
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/quizzes");
-  revalidatePath(`/quizzes/${id}`);
+  revalidatePath("/onboarding/quizzes");
+  revalidatePath(`/onboarding/quizzes/${id}`);
 }
 
 export async function deleteQuiz(id: string) {
@@ -417,7 +417,7 @@ export async function deleteQuiz(id: string) {
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/quizzes");
+  revalidatePath("/onboarding/quizzes");
 }
 
 // Quiz-scoped questions
@@ -456,7 +456,7 @@ export async function createQuizQuestion(params: {
   });
 
   if (error) throw new Error(error.message);
-  revalidatePath(`/quizzes/${params.quiz_id}/questions`);
+  revalidatePath(`/onboarding/quizzes/${params.quiz_id}/questions`);
 }
 
 export async function approveQuizQuestion(questionId: string, quizId: string) {
@@ -467,7 +467,7 @@ export async function approveQuizQuestion(questionId: string, quizId: string) {
     .eq("id", questionId);
 
   if (error) throw new Error(error.message);
-  revalidatePath(`/quizzes/${quizId}/questions`);
+  revalidatePath(`/onboarding/quizzes/${quizId}/questions`);
 }
 
 export async function deleteQuizQuestion(questionId: string, quizId: string) {
@@ -478,5 +478,5 @@ export async function deleteQuizQuestion(questionId: string, quizId: string) {
     .eq("id", questionId);
 
   if (error) throw new Error(error.message);
-  revalidatePath(`/quizzes/${quizId}/questions`);
+  revalidatePath(`/onboarding/quizzes/${quizId}/questions`);
 }

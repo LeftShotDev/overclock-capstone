@@ -161,7 +161,7 @@ export function EditQuizClient({
           <Button
             variant="ghost"
             size="icon-xs"
-            onClick={() => router.push("/quizzes")}
+            onClick={() => router.push("/onboarding/quizzes")}
           >
             <ArrowLeft className="size-4" />
           </Button>
@@ -175,7 +175,7 @@ export function EditQuizClient({
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => router.push(`/quizzes/${quiz.id}/questions`)}
+            onClick={() => router.push(`/onboarding/quizzes/${quiz.id}/questions`)}
           >
             <FileQuestion className="size-4" />
             Questions ({questionCount})

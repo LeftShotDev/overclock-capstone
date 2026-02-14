@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Admin Panel — Teaching Persona Quiz",
+  title: "Company Admin — Onboarding Assistant",
   description: "Manage quiz questions, personas, and access codes",
 };
 

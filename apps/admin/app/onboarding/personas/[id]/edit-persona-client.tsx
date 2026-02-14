@@ -123,7 +123,7 @@ export function EditPersonaClient({
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => router.push("/personas")}
+        onClick={() => router.push("/onboarding/personas")}
       >
         <ArrowLeft className="size-4" />
         Back to Personas

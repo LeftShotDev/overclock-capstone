@@ -295,7 +295,7 @@ export function QuizQuestionsClient({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  onClick={() => router.push(`/questions/${q.id}`)}
+                  onClick={() => router.push(`/onboarding/questions/${q.id}`)}
                   title="Edit"
                 >
                   <Pencil className="size-3" />
@@ -325,7 +325,7 @@ export function QuizQuestionsClient({
           <Button
             variant="ghost"
             size="icon-xs"
-            onClick={() => router.push(`/quizzes/${quiz.id}`)}
+            onClick={() => router.push(`/onboarding/quizzes/${quiz.id}`)}
           >
             <ArrowLeft className="size-4" />
           </Button>
@@ -373,7 +373,7 @@ export function QuizQuestionsClient({
               <Button
                 variant="link"
                 className="p-0 h-auto"
-                onClick={() => router.push(`/quizzes/${quiz.id}`)}
+                onClick={() => router.push(`/onboarding/quizzes/${quiz.id}`)}
               >
                 Edit settings →
               </Button>

@@ -224,7 +224,7 @@ export function QuestionsClient({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  onClick={() => router.push(`/questions/${q.id}`)}
+                  onClick={() => router.push(`/onboarding/questions/${q.id}`)}
                   title="Edit"
                 >
                   <Pencil className="size-3" />

@@ -72,7 +72,7 @@ export function EditQuestionClient({ question }: { question: Question }) {
             : null,
         options: form.options.filter((o) => o.label && o.value),
       });
-      router.push("/questions");
+      router.push("/onboarding/questions");
     });
   }
 
@@ -81,7 +81,7 @@ export function EditQuestionClient({ question }: { question: Question }) {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => router.push("/questions")}
+        onClick={() => router.push("/onboarding/questions")}
       >
         <ArrowLeft className="size-4" />
         Back to Questions
@@ -173,7 +173,7 @@ export function EditQuestionClient({ question }: { question: Question }) {
             </Button>
             <Button
               variant="outline"
-              onClick={() => router.push("/questions")}
+              onClick={() => router.push("/onboarding/questions")}
             >
               Cancel
             </Button>
