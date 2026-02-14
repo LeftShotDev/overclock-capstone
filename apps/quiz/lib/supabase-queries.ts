@@ -1,6 +1,8 @@
 import { getSupabase } from "@/lib/supabase";
 import { PERSONAS } from "@/lib/data/personas";
-import type { TeachingPersona, Character } from "@/lib/types";
+import { QUIZ_QUESTIONS } from "@/lib/data/quiz-questions";
+import { CONSTRAINT_QUESTIONS } from "@/lib/data/constraint-questions";
+import type { TeachingPersona, Character, QuizQuestion, ConstraintQuestion } from "@/lib/types";
 
 export async function fetchPersonas(): Promise<Record<string, TeachingPersona>> {
   try {
@@ -144,5 +146,104 @@ export async function writeMessageTemplates(params: {
     await supabase.from("message_templates").insert(rows);
   } catch {
     // Best-effort write
+  }
+}
+
+export async function fetchQuizQuestions(): Promise<QuizQuestion[]> {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return QUIZ_QUESTIONS;
+
+    const { data, error } = await supabase
+      .from("quiz_questions")
+      .select("*")
+      .eq("question_type", "persona")
+      .eq("is_active", true)
+      .order("sort_order");
+
+    if (error || !data?.length) return QUIZ_QUESTIONS;
+
+    return data.map((row) => ({
+      id: row.id,
+      question: row.question,
+      options: row.options as { label: string; value: string }[],
+    }));
+  } catch {
+    return QUIZ_QUESTIONS;
+  }
+}
+
+export async function fetchConstraintQuestions(): Promise<ConstraintQuestion[]> {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return CONSTRAINT_QUESTIONS;
+
+    const { data, error } = await supabase
+      .from("quiz_questions")
+      .select("*")
+      .eq("question_type", "constraint")
+      .eq("is_active", true)
+      .order("sort_order");
+
+    if (error || !data?.length) return CONSTRAINT_QUESTIONS;
+
+    return data.map((row) => ({
+      id: row.id,
+      question: row.question,
+      type: "constraint" as const,
+      constraintKey: row.constraint_key ?? row.id,
+      options: row.options as { label: string; value: string }[],
+    }));
+  } catch {
+    return CONSTRAINT_QUESTIONS;
+  }
+}
+
+export async function fetchActiveAccessCodes(): Promise<boolean> {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
+    const { count, error } = await supabase
+      .from("access_codes")
+      .select("*", { count: "exact", head: true })
+      .eq("is_active", true);
+
+    if (error) return false;
+    return (count ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+export async function validateAccessCode(code: string): Promise<boolean> {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
+    const { data, error } = await supabase
+      .from("access_codes")
+      .select("*")
+      .eq("code", code.toUpperCase())
+      .eq("is_active", true)
+      .single();
+
+    if (error || !data) return false;
+
+    // Check expiry
+    if (data.expires_at && new Date(data.expires_at) < new Date()) return false;
+
+    // Check max uses
+    if (data.max_uses !== null && data.use_count >= data.max_uses) return false;
+
+    // Increment use count
+    await supabase
+      .from("access_codes")
+      .update({ use_count: data.use_count + 1 })
+      .eq("id", data.id);
+
+    return true;
+  } catch {
+    return false;
   }
 }

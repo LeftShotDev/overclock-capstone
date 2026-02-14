@@ -1,14 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useQuiz } from "@/lib/quiz-context";
 import { QUIZ_STEPS } from "@/lib/data/quiz-steps";
 import { calculateQuizResults } from "@/lib/quiz-scoring";
+import { fetchQuizQuestions, fetchConstraintQuestions } from "@/lib/supabase-queries";
 import { QuizOptionCard } from "@/components/quiz-option-card";
 import { ConstraintQuestionStep } from "@/components/constraint-question-step";
 import { SyllabusUploadStep } from "@/components/syllabus-upload-step";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import type { QuizStep } from "@/lib/types";
 
 export default function QuizPage() {
   const router = useRouter();
@@ -23,16 +26,42 @@ export default function QuizPage() {
     hydrated,
   } = useQuiz();
 
-  if (!hydrated) return null;
+  const [steps, setSteps] = useState<QuizStep[]>(QUIZ_STEPS);
+  const [loading, setLoading] = useState(true);
 
-  const totalSteps = QUIZ_STEPS.length;
+  // Fetch questions from Supabase (falls back to static if unavailable)
+  useEffect(() => {
+    async function loadQuestions() {
+      try {
+        const [personaQs, constraintQs] = await Promise.all([
+          fetchQuizQuestions(),
+          fetchConstraintQuestions(),
+        ]);
+        const dynamicSteps: QuizStep[] = [
+          ...personaQs.map((q) => ({ type: "persona" as const, question: q })),
+          ...constraintQs.map((q) => ({ type: "constraint" as const, question: q })),
+          { type: "syllabus-upload" as const },
+        ];
+        setSteps(dynamicSteps);
+      } catch {
+        // Keep static fallback
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadQuestions();
+  }, []);
+
+  if (!hydrated || loading) return null;
+
+  const totalSteps = steps.length;
 
   if (currentStepIndex >= totalSteps) {
     router.push("/results");
     return null;
   }
 
-  const step = QUIZ_STEPS[currentStepIndex];
+  const step = steps[currentStepIndex];
   const progress = (currentStepIndex / totalSteps) * 100;
 
   function finishQuiz() {
@@ -44,7 +73,6 @@ export default function QuizPage() {
   function advance() {
     const nextIndex = currentStepIndex + 1;
     if (nextIndex >= totalSteps) {
-      // Compute results from persona answers only, then navigate
       const allAnswers = answers;
       const result = calculateQuizResults(allAnswers);
       setQuizResult(result);
