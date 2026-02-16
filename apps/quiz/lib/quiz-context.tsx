@@ -31,6 +31,8 @@ interface QuizContextValue {
   setSelectedCharacterId: (id: string | null) => void;
   generatedTemplates: GeneratedTemplatesResult | null;
   setGeneratedTemplates: (result: GeneratedTemplatesResult | null) => void;
+  personaBlurb: string | null;
+  setPersonaBlurb: (blurb: string | null) => void;
   reset: () => void;
   hydrated: boolean;
 }
@@ -49,6 +51,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [generatedTemplates, setGeneratedTemplates] = useState<GeneratedTemplatesResult | null>(null);
+  const [personaBlurb, setPersonaBlurb] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -63,6 +66,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
         setQuizResult(parsed.quizResult || null);
         setSelectedCharacterId(parsed.selectedCharacterId || null);
         setGeneratedTemplates(parsed.generatedTemplates || null);
+        setPersonaBlurb(parsed.personaBlurb || null);
       }
     } catch {
       // Ignore parse errors
@@ -82,10 +86,11 @@ export function QuizProvider({ children }: { children: ReactNode }) {
           quizResult,
           selectedCharacterId,
           generatedTemplates,
+          personaBlurb,
         })
       );
     }
-  }, [answers, constraintAnswers, syllabusData, currentStepIndex, quizResult, selectedCharacterId, generatedTemplates, hydrated]);
+  }, [answers, constraintAnswers, syllabusData, currentStepIndex, quizResult, selectedCharacterId, generatedTemplates, personaBlurb, hydrated]);
 
   const addAnswer = useCallback((answer: QuizAnswer) => {
     setAnswers((prev) => [...prev, answer]);
@@ -103,6 +108,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
     setQuizResult(null);
     setSelectedCharacterId(null);
     setGeneratedTemplates(null);
+    setPersonaBlurb(null);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
@@ -123,6 +129,8 @@ export function QuizProvider({ children }: { children: ReactNode }) {
         setSelectedCharacterId,
         generatedTemplates,
         setGeneratedTemplates,
+        personaBlurb,
+        setPersonaBlurb,
         reset,
         hydrated,
       }}

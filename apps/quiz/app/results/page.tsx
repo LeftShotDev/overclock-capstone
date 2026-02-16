@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuiz } from "@/lib/quiz-context";
 import { PERSONAS } from "@/lib/data/personas";
@@ -22,6 +22,8 @@ export default function ResultsPage() {
     selectedCharacterId,
     setSelectedCharacterId,
     setGeneratedTemplates,
+    personaBlurb,
+    setPersonaBlurb,
     hydrated,
   } = useQuiz();
   const [blurb, setBlurb] = useState("");
@@ -31,9 +33,43 @@ export default function ResultsPage() {
 
   const persona = quizResult ? PERSONAS[quizResult.topPersonaId] : null;
 
-  // Fetch persona blurb
+  // Split characters into matched + alternatives
+  const matchedCharacter = useMemo(
+    () =>
+      quizResult?.topCharacterId
+        ? characters.find((c) => c.id === quizResult.topCharacterId) ?? null
+        : null,
+    [characters, quizResult]
+  );
+
+  const alternativeCharacters = useMemo(() => {
+    if (!quizResult?.alternativeCharacterIds?.length) {
+      // Legacy result without character matching — show all as alternatives
+      return characters;
+    }
+    // Order alternatives by the scoring order
+    return quizResult.alternativeCharacterIds
+      .map((id) => characters.find((c) => c.id === id))
+      .filter((c): c is Character => c != null);
+  }, [characters, quizResult]);
+
+  // Auto-select matched character on mount
+  useEffect(() => {
+    if (!hydrated || !quizResult?.topCharacterId) return;
+    if (!selectedCharacterId) {
+      setSelectedCharacterId(quizResult.topCharacterId);
+    }
+  }, [hydrated, quizResult, selectedCharacterId, setSelectedCharacterId]);
+
+  // Fetch persona blurb — skip if already cached in context
   useEffect(() => {
     if (!hydrated || !quizResult || !persona) return;
+
+    // Use cached blurb if available
+    if (personaBlurb) {
+      setBlurb(personaBlurb);
+      return;
+    }
 
     setIsStreaming(true);
     const controller = new AbortController();
@@ -66,6 +102,11 @@ export default function ResultsPage() {
           text += decoder.decode(value, { stream: true });
           setBlurb(text);
         }
+
+        // Cache the completed blurb in context (persisted to localStorage)
+        if (text) {
+          setPersonaBlurb(text);
+        }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
       } finally {
@@ -75,7 +116,7 @@ export default function ResultsPage() {
 
     fetchBlurb();
     return () => controller.abort();
-  }, [hydrated, quizResult, persona, constraintAnswers, syllabusData]);
+  }, [hydrated, quizResult, persona, personaBlurb, constraintAnswers, syllabusData, setPersonaBlurb]);
 
   // Fetch characters for persona
   useEffect(() => {
@@ -168,30 +209,51 @@ export default function ResultsPage() {
           </div>
         )}
 
-        {characters.length > 0 && (
+        {/* Featured character match */}
+        {matchedCharacter && (
           <>
             <Separator />
             <div className="space-y-4">
               <div className="space-y-1">
                 <p className="text-sm font-semibold">
-                  Choose your teaching character
+                  Your character match
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Your pick shapes the tone of automated messages your students receive.
+                  Based on your communication style, we matched you with:
                 </p>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {characters.map((character) => (
-                  <CharacterCard
-                    key={character.id}
-                    character={character}
-                    isSelected={selectedCharacterId === character.id}
-                    onSelect={setSelectedCharacterId}
-                  />
-                ))}
-              </div>
+              <CharacterCard
+                character={matchedCharacter}
+                isSelected={selectedCharacterId === matchedCharacter.id}
+                onSelect={setSelectedCharacterId}
+                featured
+              />
             </div>
           </>
+        )}
+
+        {/* Alternative characters */}
+        {alternativeCharacters.length > 0 && (
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-muted-foreground">
+                Other {persona.name} characters
+              </p>
+              <p className="text-xs text-muted-foreground">
+                These share your teaching philosophy with a different communication style.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {alternativeCharacters.map((character) => (
+                <CharacterCard
+                  key={character.id}
+                  character={character}
+                  isSelected={selectedCharacterId === character.id}
+                  onSelect={setSelectedCharacterId}
+                />
+              ))}
+            </div>
+          </div>
         )}
 
         {loadingCharacters && (

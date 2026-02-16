@@ -14,10 +14,12 @@ This document defines the quiz flow, persona definitions, character pool, settin
 ┌─────────────────────────────────────────────────────┐
 │                   QUIZ FLOW                         │
 │                                                     │
-│  Stage 1: Philosophy Questions (4 questions)        │
-│     ↓ scoring logic                                 │
-│  Stage 2: Persona Result + Character Selection      │
-│     ↓ teacher picks a character                     │
+│  Stage 1: Philosophy Questions (6 questions)        │
+│     ↓ Q1-Q4: persona scoring                        │
+│     ↓ Q5-Q6: character style matching               │
+│  Stage 2: Persona + Character Match Result          │
+│     ↓ best-fit character auto-selected              │
+│     ↓ teacher can switch to alternative characters  │
 │  Stage 3: Apply Settings + Generate Templates       │
 │     ↓ settings written via API                      │
 │     ↓ message templates generated in character voice│
@@ -76,11 +78,37 @@ Present these questions one at a time in a conversational, warm tone. Do not rev
 | A | "Keep it minimal — I want them to develop independence." | `auto: true`, `enabled: ["help_hints"]` |
 | B | "Yes — celebrate their wins and offer help when they're stuck." | `auto: true`, `enabled: ["help_hints", "good_game"]` |
 
+### Q5 — Teaching Energy
+
+**Determines:** Character matching (energy dimension)
+
+> When a student nails a tough concept, how do you react?
+
+| Option | Label | Score |
+|--------|-------|-------|
+| A | "Big energy — I want them to feel how exciting this is!" | `energy: high` |
+| B | "A genuine smile and a thoughtful acknowledgment — I let the moment land." | `energy: calm` |
+| C | "I keep it real — quick props, then on to what's next." | `energy: direct` |
+
+### Q6 — Communication Approach
+
+**Determines:** Character matching (style dimension)
+
+> Your go-to way of helping a stuck student:
+
+| Option | Label | Score |
+|--------|-------|-------|
+| A | "Make it fun — reframe the problem, use humor, lighten the mood." | `style: playful` |
+| B | "Get personal — share your own experience, connect on a human level." | `style: personal` |
+| C | "Cut to it — identify the gap, give clear steps, trust them to execute." | `style: analytical` |
+
 ---
 
 ## Scoring Logic
 
-After collecting all four answers, compute the persona using this decision tree:
+### Phase 1: Persona Scoring
+
+After collecting all six answers, compute the persona using Q1-Q4 with this decision tree:
 
 ```
 IF threshold == 70 AND structure == "open workshop":
@@ -95,9 +123,40 @@ ELSE IF threshold == 90 AND personality == "advisor":
     → Strategist
 ```
 
+### Phase 2: Character Matching
+
+After determining the persona, use Q5 (energy) and Q6 (style) to match the best-fit character within that persona. Each character has a style vector `(energy, style)`:
+
+| Character | Persona | Energy | Style |
+|-----------|---------|--------|-------|
+| Ms. Frizzle | Explorer | high | playful |
+| Jessica Day | Explorer | high | personal |
+| Evan Marquez | Explorer | direct | analytical |
+| Janine Teagues | Nurturer | high | personal |
+| Uncle Iroh | Nurturer | calm | personal |
+| Jiraiya | Nurturer | direct | playful |
+| Mr. Miyagi | Mentor | calm | analytical |
+| Gabe Iglesias | Mentor | high | playful |
+| Mr. Feeny | Mentor | calm | personal |
+| Jaime Escalante | Mastery Coach | direct | analytical |
+| Coach Carter | Mastery Coach | direct | analytical |
+| All Might | Mastery Coach | high | playful |
+| Coach Eric Taylor | Mastery Coach | calm | personal |
+| Annalise Keating | Strategist | direct | analytical |
+| Professor McGonagall | Strategist | calm | analytical |
+| Storm | Strategist | calm | analytical |
+
+**Matching algorithm:**
+1. Filter to characters in the scored persona
+2. Score each: +1 for energy match, +1 for style match (max 2)
+3. Sort by score descending, then sort_order ascending (tiebreaker)
+4. Top = best match (auto-selected), rest = alternatives
+
+**Tiebreakers:** Escalante beats Carter; McGonagall beats Storm (resolved by sort_order).
+
 ### Edge Case Handling
 
-The scoring above is deterministic — there are no ambiguous combinations. Every possible answer set maps to exactly one persona. However, if the quiz is extended with additional questions in the future and weighted scoring is introduced, use nearest-neighbor matching against the persona settings vectors.
+The persona scoring above is deterministic — there are no ambiguous combinations. Every possible answer set maps to exactly one persona. Character matching defaults to `energy: "calm"`, `style: "personal"` if Q5/Q6 are unanswered.
 
 ---
 
@@ -208,21 +267,26 @@ The scoring above is deterministic — there are no ambiguous combinations. Ever
 
 ---
 
-## Stage 2: Character Selection
+## Stage 2: Character Match Result
 
-After revealing the persona result, present the character options from that persona's pool. The teacher selects the character they identify with most.
+After revealing the persona result, the system auto-selects the best-fit character based on the teacher's communication style answers (Q5 + Q6). Alternative characters from the same persona are shown below.
 
 ### Presentation Format
 
-> Now — which of these fictional teachers do you connect with most? Your pick will shape the tone of the automated messages your students receive.
+The results page displays:
 
-Present each character as a card with:
+1. **Persona card** with name and description
+2. **Streamed persona blurb** (AI-generated, personalized to quiz answers)
+3. **"Your character match"** — featured card for the best-fit character with a "Best Match" badge
+4. **"Other [Persona] characters"** — grid of alternative characters the teacher can switch to
+
+Each character card shows:
 
 - **Name** and source work
 - **One-liner quote or tagline** (see character pool below)
 - **2-sentence description** of their teaching energy
 
-The teacher selects one. This selection determines:
+The teacher can accept the auto-match or select a different character. This selection determines:
 
 1. The `character_id` stored on the course (for future reference / re-generation)
 2. The voice and tone profile used by the **Message Template Generator**

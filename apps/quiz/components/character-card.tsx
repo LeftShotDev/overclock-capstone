@@ -14,23 +14,33 @@ interface CharacterCardProps {
   character: Character;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  featured?: boolean;
 }
 
 export function CharacterCard({
   character,
   isSelected,
   onSelect,
+  featured,
 }: CharacterCardProps) {
   return (
     <Card
       className={cn(
         "cursor-pointer transition-all hover:shadow-md",
-        isSelected && "ring-2 ring-primary border-primary"
+        isSelected && "ring-2 ring-primary border-primary",
+        featured && "border-2"
       )}
       onClick={() => onSelect(character.id)}
     >
       <CardHeader>
-        <CardTitle className="text-base">{character.name}</CardTitle>
+        {featured && (
+          <span className="text-xs font-medium text-primary uppercase tracking-wide">
+            Best Match
+          </span>
+        )}
+        <CardTitle className={cn("text-base", featured && "text-lg")}>
+          {character.name}
+        </CardTitle>
         <CardDescription>{character.work}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">

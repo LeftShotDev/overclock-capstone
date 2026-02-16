@@ -62,6 +62,8 @@ export type CoursewareSetting = z.infer<typeof CoursewareSettingSchema>;
 
 export interface QuizResult {
   topPersonaId: string;
+  topCharacterId: string;
+  alternativeCharacterIds: string[];
 }
 
 // Constraint questions — factual course logistics, no persona weights
