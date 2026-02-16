@@ -61,9 +61,11 @@ export default function ResultsPage() {
     }
   }, [hydrated, quizResult, selectedCharacterId, setSelectedCharacterId]);
 
-  // Fetch persona blurb — skip if already cached in context
+  // Fetch character-focused blurb — waits for matchedCharacter to load
+  // Use matchedCharacter?.id as dep to keep array size constant (object → primitive)
+  const matchedCharacterId = matchedCharacter?.id ?? null;
   useEffect(() => {
-    if (!hydrated || !quizResult || !persona) return;
+    if (!hydrated || !quizResult || !persona || !matchedCharacter) return;
 
     // Use cached blurb if available
     if (personaBlurb) {
@@ -81,6 +83,11 @@ export default function ResultsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             personaId: quizResult!.topPersonaId,
+            characterName: matchedCharacter!.name,
+            characterWork: matchedCharacter!.work,
+            characterTagline: matchedCharacter!.tagline,
+            characterDescription: matchedCharacter!.description,
+            characterVoiceProfile: matchedCharacter!.voiceProfile,
             constraintAnswers,
             syllabusData,
           }),
@@ -116,7 +123,8 @@ export default function ResultsPage() {
 
     fetchBlurb();
     return () => controller.abort();
-  }, [hydrated, quizResult, persona, personaBlurb, constraintAnswers, syllabusData, setPersonaBlurb]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, quizResult, persona, matchedCharacterId, personaBlurb, constraintAnswers, syllabusData, setPersonaBlurb]);
 
   // Fetch characters for persona
   useEffect(() => {
@@ -190,49 +198,52 @@ export default function ResultsPage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-background">
       <div className="w-full max-w-2xl space-y-8 py-8">
+        {/* 1. Character-focused header */}
         <div className="text-center space-y-2">
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Your teaching persona is...
+            Your character match is...
           </p>
         </div>
 
-        <PersonaCard persona={persona} />
-
-        {(blurb || isStreaming) && (
-          <div className="space-y-2">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-              {blurb}
-              {isStreaming && (
-                <span className="inline-block w-1.5 h-4 bg-foreground/70 animate-pulse ml-0.5 align-text-bottom" />
-              )}
-            </p>
-          </div>
+        {/* 2. Hero character + streamed blurb (flows inline) */}
+        {loadingCharacters && !matchedCharacter && (
+          <p className="text-sm text-muted-foreground text-center">
+            Finding your character match...
+          </p>
+        )}
+        {matchedCharacter && (
+          <CharacterCard
+            character={matchedCharacter}
+            isSelected={selectedCharacterId === matchedCharacter.id}
+            onSelect={setSelectedCharacterId}
+            featured
+            streamedBlurb={
+              (blurb || isStreaming) ? (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap pt-1">
+                  {blurb}
+                  {isStreaming && (
+                    <span className="inline-block w-1.5 h-4 bg-foreground/70 animate-pulse ml-0.5 align-text-bottom" />
+                  )}
+                </p>
+              ) : undefined
+            }
+          />
         )}
 
-        {/* Featured character match */}
-        {matchedCharacter && (
+        {/* 4. Teaching persona section */}
+        {persona && (
           <>
             <Separator />
             <div className="space-y-4">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold">
-                  Your character match
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Based on your communication style, we matched you with:
-                </p>
-              </div>
-              <CharacterCard
-                character={matchedCharacter}
-                isSelected={selectedCharacterId === matchedCharacter.id}
-                onSelect={setSelectedCharacterId}
-                featured
-              />
+              <p className="text-sm font-semibold text-muted-foreground">
+                Part of the {persona.name} teaching philosophy
+              </p>
+              <PersonaCard persona={persona} />
             </div>
           </>
         )}
 
-        {/* Alternative characters */}
+        {/* 5. Alternative characters */}
         {alternativeCharacters.length > 0 && (
           <div className="space-y-4">
             <div className="space-y-1">
@@ -256,12 +267,7 @@ export default function ResultsPage() {
           </div>
         )}
 
-        {loadingCharacters && (
-          <p className="text-sm text-muted-foreground text-center">
-            Loading characters...
-          </p>
-        )}
-
+        {/* 6. Continue button */}
         <Button
           onClick={handleContinue}
           className="w-full"
