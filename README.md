@@ -17,12 +17,12 @@ The admin panel manages all content across the system:
 - **Quizzes** — Create quizzes with custom settings schemas (JSONB), then generate or manually add questions per quiz
 - **Questions** — CRUD and reorder global quiz questions with persona/constraint types
 - **Personas** — Edit the 5 teaching personas, their settings, and assigned characters
-- **Characters** — Manage 16 teacher characters with voice profiles, sex/ethnicity demographics
+- **Characters** — Manage teacher characters with voice profiles, sex/ethnicity demographics, and an AI wizard that suggests new characters per persona and generates full profiles
 - **Access Codes** — Generate and revoke codes that gate quiz entry
 
 ## AI Architecture
 
-Five API endpoints use two LLM providers (Anthropic Claude + Google Gemini) across two LangGraph ReAct agents and three direct model calls.
+Six API endpoints use two LLM providers (Anthropic Claude + Google Gemini) across three LangGraph ReAct agents and three direct model calls.
 
 ```mermaid
 flowchart TB
@@ -34,6 +34,7 @@ flowchart TB
 
     subgraph adminUI ["Admin App"]
         quizMgmt["/onboarding/quizzes/[id]/questions"]
+        charMgmt["/onboarding/characters"]
     end
 
     subgraph quizAPI ["Quiz API Routes"]
@@ -45,11 +46,13 @@ flowchart TB
 
     subgraph adminAPI ["Admin API Routes"]
         genQ["POST /api/generate-questions"]
+        genChar["POST /api/generate-character"]
     end
 
     subgraph agents ["LangGraph ReAct Agents"]
         syllAgent["Syllabus Analyzer\n🟣 Claude Sonnet 4.5\nTemp: 0"]
         cwAgent["Courseware Agent\n🔵 Gemini 2.0 Flash\nTemp: 0.7"]
+        charAgent["Character Agent\n🟣 Claude Sonnet 4.5\nTemp: 0.8"]
     end
 
     subgraph syllTools ["Syllabus Tools"]
@@ -63,6 +66,11 @@ flowchart TB
         t5["update_courseware_setting"]
     end
 
+    subgraph charTools ["Character Tools"]
+        t6["generate_character_suggestions"]
+        t7["generate_character_profile"]
+    end
+
     subgraph direct ["Direct Model Calls"]
         personaLLM["streamText\n🟣 Claude Sonnet 4.5\nStreaming persona blurb"]
         templateLLM["generateText\n🟣 Claude Sonnet 4.5\nMessage template adaptation"]
@@ -74,12 +82,14 @@ flowchart TB
     results --> templates
     settings --> chat
     quizMgmt --> genQ
+    charMgmt --> genChar
 
     syllabus -->|"pdf-parse / mammoth\nthen invoke()"| syllAgent
     persona --> personaLLM
     templates --> templateLLM
     chat -->|"streamEvents()"| cwAgent
     genQ --> questionLLM
+    genChar -->|"invoke() × 3 steps"| charAgent
 
     syllAgent --> t1
     syllAgent --> t2
@@ -88,6 +98,9 @@ flowchart TB
     cwAgent --> t4
     cwAgent --> t5
 
+    charAgent --> t6
+    charAgent --> t7
+
     templateLLM -.->|"write results"| supabase[(Supabase)]
     questionLLM -.->|"insert drafts"| supabase
 
@@ -95,6 +108,7 @@ flowchart TB
     style personaLLM fill:#7c3aed,color:#fff
     style templateLLM fill:#7c3aed,color:#fff
     style questionLLM fill:#7c3aed,color:#fff
+    style charAgent fill:#7c3aed,color:#fff
     style cwAgent fill:#2563eb,color:#fff
 ```
 
@@ -107,6 +121,7 @@ flowchart TB
 | `claude-sonnet-4-5-20250929` | Quiz | Message templates | Direct `generateText` | — | No |
 | `gemini-2.0-flash` | Quiz | Settings chat | LangGraph ReAct agent | 2 | Yes |
 | `claude-sonnet-4-5-20250929` | Admin | Question generation | Direct `generateText` | — | No |
+| `claude-sonnet-4-5-20250929` | Admin | Character suggestions + profiles | LangGraph ReAct agent | 2 | No |
 
 ### Agent Details
 
@@ -114,7 +129,9 @@ flowchart TB
 
 **Courseware Agent** — In-character settings assistant. Stays in the user's matched teaching persona and discusses courseware settings, explaining rationale and answering questions. Can look up current settings and apply changes via tool calls.
 
-Both agents use `createReactAgent` from `@langchain/langgraph` and are initialized as **lazy singletons** — created once on first use, then cached for the server lifetime.
+**Character Suggestion Agent** — AI wizard for creating new teacher characters in the admin panel. Operates in three steps: (1) generates 5-8 diverse character suggestions for a selected persona, avoiding existing names and ensuring franchise/demographic diversity; (2) provides brief detail previews on demand; (3) generates a full profile including tagline, description, voice profile, sex, and ethnicity, ensuring the voice feels distinct from existing characters in that persona.
+
+All three agents use `createReactAgent` from `@langchain/langgraph` and are initialized as **lazy singletons** — created once on first use, then cached for the server lifetime.
 
 ### Direct Model Calls
 
@@ -128,7 +145,7 @@ Both agents use `createReactAgent` from `@langchain/langgraph` and are initializ
 
 - **Framework**: Next.js 16 (App Router, Turbopack)
 - **AI**: Vercel AI SDK v6 (`streamText`, `generateText`), LangGraph.js (`createReactAgent`)
-- **LLM Providers**: Anthropic Claude (syllabus, persona, templates, question generation), Google Gemini (settings chat)
+- **LLM Providers**: Anthropic Claude (syllabus, persona, templates, question generation, character wizard), Google Gemini (settings chat)
 - **Database**: Supabase (Postgres + Auth + RLS)
 - **UI**: Tailwind CSS v4, shadcn/ui
 - **State**: React Context + localStorage (quiz state persists across pages)
@@ -168,7 +185,7 @@ pnpm dev
 
 | Variable | Used For |
 |---|---|
-| `ANTHROPIC_API_KEY` | AI question generation for quizzes |
+| `ANTHROPIC_API_KEY` | AI question generation + character suggestion agent |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-side admin writes (bypasses RLS) |
@@ -201,17 +218,19 @@ capstone/
 │       ├── app/
 │       │   ├── login/              Email/password auth
 │       │   ├── api/
-│       │   │   └── generate-questions/  Claude generateText (quiz questions)
+│       │   │   ├── generate-questions/  Claude generateText (quiz questions)
+│       │   │   └── generate-character/  LangGraph character agent (3-step)
 │       │   └── onboarding/
 │       │       ├── quizzes/        CRUD quizzes + settings schemas
 │       │       ├── questions/      CRUD + reorder global questions
 │       │       ├── personas/       Edit personas + character assignments
-│       │       ├── characters/     Manage characters + voice profiles
+│       │       ├── characters/     AI wizard + manage characters
 │       │       └── access-codes/   Generate/revoke access codes
 │       ├── components/
 │       │   ├── admin-shell.tsx     Layout: black header + sidebar nav
 │       │   └── ui/                 shadcn/ui primitives
 │       └── lib/
+│           ├── agents/             LangGraph character agent + tools
 │           ├── actions.ts          Server actions (service role)
 │           └── supabase-server.ts  Supabase SSR + service client
 │
