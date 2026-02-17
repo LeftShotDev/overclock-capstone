@@ -22,6 +22,7 @@ import {
   Save,
   X,
 } from "lucide-react";
+import { ImageSearch } from "@/components/image-search";
 
 interface Character {
   id: string;
@@ -87,6 +88,7 @@ export function NewCharacterWizard({
     voice_profile: "{}",
     sex: "",
     ethnicity: "",
+    image_url: "",
   });
 
   // Manual form
@@ -99,6 +101,7 @@ export function NewCharacterWizard({
     voice_profile: "{}",
     sex: "",
     ethnicity: "",
+    image_url: "",
   });
 
   const selectedPersona = personas.find((p) => p.id === wizardPersona);
@@ -224,6 +227,7 @@ export function NewCharacterWizard({
         voice_profile: JSON.stringify(profile.voice_profile ?? {}, null, 2),
         sex: profile.sex ?? "",
         ethnicity: profile.ethnicity ?? "",
+        image_url: "",
       });
 
       setWizardStep("review");
@@ -266,6 +270,7 @@ export function NewCharacterWizard({
         sort_order: maxOrder + 1,
         sex: reviewForm.sex || undefined,
         ethnicity: reviewForm.ethnicity || undefined,
+        image_url: reviewForm.image_url || undefined,
       });
       // Loop back to suggestions for another
       setWizardStep("suggestions");
@@ -277,6 +282,7 @@ export function NewCharacterWizard({
         voice_profile: "{}",
         sex: "",
         ethnicity: "",
+        image_url: "",
       });
       router.refresh();
       await fetchSuggestions();
@@ -315,6 +321,7 @@ export function NewCharacterWizard({
         sort_order: maxOrder + 1,
         sex: manualForm.sex || undefined,
         ethnicity: manualForm.ethnicity || undefined,
+        image_url: manualForm.image_url || undefined,
       });
       router.push("/onboarding/characters");
       router.refresh();
@@ -634,6 +641,31 @@ export function NewCharacterWizard({
               </div>
             </div>
             <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Image URL</label>
+                <ImageSearch
+                  defaultQuery={reviewForm.name}
+                  onSelect={(url) =>
+                    setReviewForm((p) => ({ ...p, image_url: url }))
+                  }
+                />
+              </div>
+              <Input
+                value={reviewForm.image_url}
+                onChange={(e) =>
+                  setReviewForm((p) => ({ ...p, image_url: e.target.value }))
+                }
+                placeholder="https://..."
+              />
+              {reviewForm.image_url && (
+                <img
+                  src={reviewForm.image_url}
+                  alt="Preview"
+                  className="w-16 h-16 rounded-md object-cover mt-1"
+                />
+              )}
+            </div>
+            <div className="space-y-2">
               <label className="text-sm font-medium">Tagline</label>
               <Input
                 value={reviewForm.tagline}
@@ -796,6 +828,31 @@ export function NewCharacterWizard({
                   <option value="Asian">Asian</option>
                 </select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Image URL</label>
+                <ImageSearch
+                  defaultQuery={manualForm.name}
+                  onSelect={(url) =>
+                    setManualForm((p) => ({ ...p, image_url: url }))
+                  }
+                />
+              </div>
+              <Input
+                value={manualForm.image_url}
+                onChange={(e) =>
+                  setManualForm((p) => ({ ...p, image_url: e.target.value }))
+                }
+                placeholder="https://..."
+              />
+              {manualForm.image_url && (
+                <img
+                  src={manualForm.image_url}
+                  alt="Preview"
+                  className="w-16 h-16 rounded-md object-cover mt-1"
+                />
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Tagline</label>

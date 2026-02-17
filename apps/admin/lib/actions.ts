@@ -176,6 +176,7 @@ export async function updateCharacter(
     sort_order?: number;
     sex?: string;
     ethnicity?: string;
+    image_url?: string | null;
   }
 ) {
   const supabase = createSupabaseServiceClient();
@@ -212,6 +213,7 @@ export async function createCharacter(params: {
   sort_order: number;
   sex?: string;
   ethnicity?: string;
+  image_url?: string;
 }) {
   const supabase = createSupabaseServiceClient();
   const { error } = await supabase.from("characters").insert(params);

@@ -41,6 +41,7 @@ export const CharacterSchema = z.object({
   description: z.string(),
   voiceProfile: z.record(z.string(), z.unknown()),
   sortOrder: z.number(),
+  imageUrl: z.string().nullable().optional(),
 });
 export type Character = z.infer<typeof CharacterSchema>;
 

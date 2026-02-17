@@ -59,6 +59,7 @@ export async function fetchCharactersByPersona(personaId: string): Promise<Chara
       description: row.description,
       voiceProfile: row.voice_profile,
       sortOrder: row.sort_order,
+      imageUrl: row.image_url ?? null,
     }));
   } catch {
     return [];
@@ -89,6 +90,7 @@ export async function fetchCharacterById(
       description: data.description,
       voiceProfile: data.voice_profile,
       sortOrder: data.sort_order,
+      imageUrl: data.image_url ?? null,
     };
   } catch {
     return null;

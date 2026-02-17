@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Pencil, X, Save } from "lucide-react";
+import { ImageSearch } from "@/components/image-search";
 
 interface Character {
   id: string;
@@ -21,6 +22,7 @@ interface Character {
   sort_order: number;
   sex: string | null;
   ethnicity: string | null;
+  image_url: string | null;
   personas: { name: string } | null;
 }
 
@@ -50,6 +52,7 @@ export function CharactersClient({
     voice_profile: "{}",
     sex: "",
     ethnicity: "",
+    image_url: "",
   });
 
   const filtered =
@@ -76,6 +79,7 @@ export function CharactersClient({
       voice_profile: JSON.stringify(c.voice_profile, null, 2),
       sex: c.sex ?? "",
       ethnicity: c.ethnicity ?? "",
+      image_url: c.image_url ?? "",
     });
   }
 
@@ -96,6 +100,7 @@ export function CharactersClient({
         voice_profile: parsedVoice,
         sex: editForm.sex || undefined,
         ethnicity: editForm.ethnicity || undefined,
+        image_url: editForm.image_url || null,
       });
       setEditingId(null);
       router.refresh();
@@ -186,6 +191,32 @@ export function CharactersClient({
               </div>
             </div>
             <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium">Image URL</label>
+                <ImageSearch
+                  defaultQuery={editForm.name}
+                  onSelect={(url) =>
+                    setEditForm((p) => ({ ...p, image_url: url }))
+                  }
+                />
+              </div>
+              <Input
+                value={editForm.image_url}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, image_url: e.target.value }))
+                }
+                className="h-8 text-sm"
+                placeholder="https://..."
+              />
+              {editForm.image_url && (
+                <img
+                  src={editForm.image_url}
+                  alt="Preview"
+                  className="w-16 h-16 rounded-md object-cover mt-1"
+                />
+              )}
+            </div>
+            <div className="space-y-1">
               <label className="text-xs font-medium">Tagline</label>
               <Input
                 value={editForm.tagline}
@@ -242,6 +273,17 @@ export function CharactersClient({
     return (
       <Card key={c.id}>
         <CardContent className="flex items-start gap-4 pt-4">
+          {c.image_url ? (
+            <img
+              src={c.image_url}
+              alt={c.name}
+              className="w-10 h-10 rounded-md object-cover shrink-0"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-md bg-muted shrink-0 flex items-center justify-center">
+              <span className="text-muted-foreground text-xs">—</span>
+            </div>
+          )}
           <div className="flex-1 min-w-0 space-y-1">
             <div className="flex items-center gap-2">
               <span className="font-medium text-sm">{c.name}</span>
