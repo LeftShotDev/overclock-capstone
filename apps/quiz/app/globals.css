@@ -1,69 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=Lora:wght@400&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Design System Colors (from Figma Component Library)
+ *
+ * Base Colors:
+ *   Primary Text: #202325 → oklch(0.20 0.006 255)
+ *   Secondary Text: #636566 → oklch(0.45 0.006 250)
+ *   Mid Contrast: #C2BDBA → oklch(0.78 0.012 75)
+ *   Light Contrast 1: #F4F3EF → oklch(0.96 0.006 90)
+ *   Light Contrast 2: #EAE8E3 → oklch(0.93 0.010 85)
+ *
+ * Brand Colors:
+ *   Indigo 500: #5367EA → oklch(0.55 0.19 270) - Primary CTAs, links
+ *   Green 500: #15B976 → oklch(0.65 0.16 160) - Success states
+ *   Yellow 500: #F3BE36 → oklch(0.82 0.15 85) - Warning states
+ *   Red 500: #FF5B5B → oklch(0.65 0.21 25) - Error/destructive
+ *   Grape 500: #400792 → oklch(0.30 0.20 290)
+ */
+
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Font */
+  --font-sans: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Lora', ui-serif, Georgia, serif;
+  --font-size: 16px;
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Gray scale */
+  --light-gray-1: oklch(0.96 0.006 90);  /* #F4F3EF */
+  --light-gray-2: oklch(0.93 0.010 85);  /* #EAE8E3 */
+
+  /* Base colors - Light theme */
+  --background: var(--light-gray-1);
+  --foreground: oklch(0.20 0.006 255);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.20 0.006 255);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.20 0.006 255);
+
+  /* Primary - Indigo 500 (#5367EA) */
+  --primary: oklch(0.55 0.19 270);
+  --primary-foreground: oklch(1 0 0);
+
+  /* Secondary - Light contrast */
+  --secondary: oklch(0.96 0.006 90);
+  --secondary-foreground: oklch(0.20 0.006 255);
+
+  /* Muted */
+  --muted: oklch(0.96 0.006 90);
+  --muted-foreground: oklch(0.45 0.006 250);
+
+  /* Accent */
+  --accent: oklch(0.93 0.010 85);
+  --accent-foreground: oklch(0.20 0.006 255);
+
+  /* Destructive - Red 500 (#FF5B5B) */
+  --destructive: oklch(0.65 0.21 25);
+  --destructive-foreground: oklch(1 0 0);
+
+  /* Semantic colors */
+  --success: oklch(0.65 0.16 160);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.82 0.15 85);
+  --warning-foreground: oklch(0.20 0.006 255);
+  --info: oklch(0.75 0.10 200);
+  --info-foreground: oklch(0.20 0.006 255);
+
+  /* UI elements */
+  --border: oklch(0.93 0.010 85);
+  --input: transparent;
+  --input-background: oklch(0.96 0.006 90);
+  --ring: oklch(0.55 0.19 270);
   --radius: 0.625rem;
+
+  /* Sidebar */
   --sidebar-background: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.20 0.006 255);
+  --sidebar-primary: oklch(0.55 0.19 270);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.96 0.006 90);
+  --sidebar-accent-foreground: oklch(0.20 0.006 255);
+  --sidebar-border: oklch(0.93 0.010 85);
+  --sidebar-ring: oklch(0.55 0.19 270);
 }
 
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
+  --card: oklch(0.18 0.005 255);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
+  --popover: oklch(0.18 0.005 255);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+
+  /* Primary - Lighter indigo for dark mode */
+  --primary: oklch(0.65 0.18 270);
+  --primary-foreground: oklch(0.15 0 0);
+
+  /* Secondary */
+  --secondary: oklch(0.25 0.005 255);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+
+  /* Muted */
+  --muted: oklch(0.25 0.005 255);
+  --muted-foreground: oklch(0.65 0.006 250);
+
+  /* Accent */
+  --accent: oklch(0.25 0.005 255);
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --sidebar-background: oklch(0.205 0 0);
+
+  /* Destructive */
+  --destructive: oklch(0.55 0.20 25);
+  --destructive-foreground: oklch(0.95 0.05 25);
+
+  /* Semantic colors - Dark mode */
+  --success: oklch(0.60 0.15 160);
+  --success-foreground: oklch(0.15 0 0);
+  --warning: oklch(0.75 0.14 85);
+  --warning-foreground: oklch(0.15 0 0);
+  --info: oklch(0.65 0.10 200);
+  --info-foreground: oklch(0.15 0 0);
+
+  /* UI elements */
+  --border: oklch(0.30 0.005 255);
+  --input: oklch(0.25 0.005 255);
+  --input-background: oklch(0.22 0.005 255);
+  --ring: oklch(0.65 0.18 270);
+
+  /* Sidebar */
+  --sidebar-background: oklch(0.18 0.005 255);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.985 0 0);
-  --sidebar-primary-foreground: oklch(0.205 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-primary: oklch(0.65 0.18 270);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.25 0.005 255);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --sidebar-border: oklch(0.30 0.005 255);
+  --sidebar-ring: oklch(0.65 0.18 270);
 }
 
 @theme inline {
+  /* Font family */
+  --font-family-sans: var(--font-sans);
+  --font-family-serif: var(--font-serif);
+
+  /* Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -80,8 +163,15 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-input-background: var(--input-background);
   --color-ring: var(--ring);
   --color-sidebar-background: var(--sidebar-background);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -99,9 +189,52 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
+
+  html {
+    font-size: var(--font-size);
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+
+  /* Default typography styles */
+  h1 {
+    font-family: var(--font-sans);
+    font-size: 3rem;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-family: var(--font-sans);
+    font-size: 2.25rem;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  h3 {
+    font-family: var(--font-sans);
+    font-size: 1.625rem;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.2;
+  }
+
+  h4 {
+    font-family: var(--font-sans);
+    font-size: 1.25rem;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.3;
+  }
+
+  label {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.5;
   }
 }
