@@ -44,11 +44,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY  # Supabase anon key (optional)
 
 ### Admin App (`apps/admin/.env.local`)
 ```
+ANTHROPIC_API_KEY              # Claude — AI question generation + character suggestion agent
 NEXT_PUBLIC_SUPABASE_URL       # Same as quiz app
 NEXT_PUBLIC_SUPABASE_ANON_KEY  # Same as quiz app
 SUPABASE_SERVICE_ROLE_KEY      # Server-side only — bypasses RLS for admin writes
-GOOGLE_CSE_API_KEY             # Google Custom Search — character image search (optional)
-GOOGLE_CSE_ID                  # Google Custom Search Engine ID (optional)
+SERPER_API_KEY                 # Serper.dev — character image search (optional)
 ```
 
 ## Architecture

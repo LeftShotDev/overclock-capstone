@@ -192,22 +192,18 @@ export function CharactersClient({
             </div>
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium">Image URL</label>
+                <label className="text-xs font-medium">Image</label>
                 <ImageSearch
-                  defaultQuery={editForm.name}
+                  characterContext={{
+                    name: editForm.name,
+                    work: editForm.work,
+                  }}
+                  characterId={c.id}
                   onSelect={(url) =>
                     setEditForm((p) => ({ ...p, image_url: url }))
                   }
                 />
               </div>
-              <Input
-                value={editForm.image_url}
-                onChange={(e) =>
-                  setEditForm((p) => ({ ...p, image_url: e.target.value }))
-                }
-                className="h-8 text-sm"
-                placeholder="https://..."
-              />
               {editForm.image_url && (
                 <img
                   src={editForm.image_url}

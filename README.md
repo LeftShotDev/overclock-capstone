@@ -17,7 +17,7 @@ The admin panel manages all content across the system:
 - **Quizzes** — Create quizzes with custom settings schemas (JSONB), then generate or manually add questions per quiz
 - **Questions** — CRUD and reorder global quiz questions with persona/constraint types
 - **Personas** — Edit the 5 teaching personas, their settings, and assigned characters
-- **Characters** — Manage teacher characters with voice profiles, sex/ethnicity demographics, and an AI wizard that suggests new characters per persona and generates full profiles
+- **Characters** — Manage teacher characters with voice profiles, sex/ethnicity demographics, image search with auto-crop to Supabase Storage, and an AI wizard that suggests new characters per persona and generates full profiles
 - **Access Codes** — Generate and revoke codes that gate quiz entry
 
 ## AI Architecture
@@ -150,6 +150,8 @@ All three agents use `createReactAgent` from `@langchain/langgraph` and are init
 - **UI**: Tailwind CSS v4, shadcn/ui
 - **State**: React Context + localStorage (quiz state persists across pages)
 - **File Parsing**: pdf-parse (PDF), mammoth (DOCX)
+- **Image Processing**: sharp (crop + resize), Supabase Storage
+- **Image Search**: Serper.dev (Google Images API)
 - **Validation**: Zod v4
 - **Monorepo**: pnpm workspaces
 
@@ -189,6 +191,7 @@ pnpm dev
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-side admin writes (bypasses RLS) |
+| `SERPER_API_KEY` | Character image search via Serper.dev (optional) |
 
 ## Project Structure
 
@@ -219,7 +222,9 @@ capstone/
 │       │   ├── login/              Email/password auth
 │       │   ├── api/
 │       │   │   ├── generate-questions/  Claude generateText (quiz questions)
-│       │   │   └── generate-character/  LangGraph character agent (3-step)
+│       │   │   ├── generate-character/  LangGraph character agent (3-step)
+│       │   │   ├── find-image/          Serper.dev image search
+│       │   │   └── crop-image/          Download, crop, store in Supabase Storage
 │       │   └── onboarding/
 │       │       ├── quizzes/        CRUD quizzes + settings schemas
 │       │       ├── questions/      CRUD + reorder global questions
@@ -241,7 +246,7 @@ capstone/
 │           └── supabase.ts         Shared Supabase client singleton
 │
 └── supabase/
-    └── migrations/                 Database schema + seeds (6 migrations)
+    └── migrations/                 Database schema, seeds + storage (9 migrations)
 ```
 
 ## Deployment

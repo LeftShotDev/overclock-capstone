@@ -642,26 +642,23 @@ export function NewCharacterWizard({
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Image URL</label>
+                <label className="text-sm font-medium">Image</label>
                 <ImageSearch
-                  defaultQuery={reviewForm.name}
+                  characterContext={{
+                    name: reviewForm.name,
+                    work: reviewForm.work,
+                  }}
+                  characterId={generateId(reviewForm.name)}
                   onSelect={(url) =>
                     setReviewForm((p) => ({ ...p, image_url: url }))
                   }
                 />
               </div>
-              <Input
-                value={reviewForm.image_url}
-                onChange={(e) =>
-                  setReviewForm((p) => ({ ...p, image_url: e.target.value }))
-                }
-                placeholder="https://..."
-              />
               {reviewForm.image_url && (
                 <img
                   src={reviewForm.image_url}
                   alt="Preview"
-                  className="w-16 h-16 rounded-md object-cover mt-1"
+                  className="w-16 h-16 rounded-md object-cover"
                 />
               )}
             </div>
@@ -831,26 +828,23 @@ export function NewCharacterWizard({
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Image URL</label>
+                <label className="text-sm font-medium">Image</label>
                 <ImageSearch
-                  defaultQuery={manualForm.name}
+                  characterContext={{
+                    name: manualForm.name,
+                    work: manualForm.work,
+                  }}
+                  characterId={generateId(manualForm.name)}
                   onSelect={(url) =>
                     setManualForm((p) => ({ ...p, image_url: url }))
                   }
                 />
               </div>
-              <Input
-                value={manualForm.image_url}
-                onChange={(e) =>
-                  setManualForm((p) => ({ ...p, image_url: e.target.value }))
-                }
-                placeholder="https://..."
-              />
               {manualForm.image_url && (
                 <img
                   src={manualForm.image_url}
                   alt="Preview"
-                  className="w-16 h-16 rounded-md object-cover mt-1"
+                  className="w-16 h-16 rounded-md object-cover"
                 />
               )}
             </div>
