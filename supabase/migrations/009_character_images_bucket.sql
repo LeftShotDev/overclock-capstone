@@ -17,16 +17,25 @@ EXCEPTION WHEN unique_violation THEN
 END $$;
 
 -- Public read access
-CREATE POLICY IF NOT EXISTS "Public read character images"
-  ON storage.objects FOR SELECT
-  USING (bucket_id = 'Characters');
+DO $$ BEGIN
+  CREATE POLICY "Public read character images"
+    ON storage.objects FOR SELECT
+    USING (bucket_id = 'Characters');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Service role upload
-CREATE POLICY IF NOT EXISTS "Service role upload character images"
-  ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'Characters');
+DO $$ BEGIN
+  CREATE POLICY "Service role upload character images"
+    ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id = 'Characters');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Service role update (upsert)
-CREATE POLICY IF NOT EXISTS "Service role update character images"
-  ON storage.objects FOR UPDATE
-  USING (bucket_id = 'Characters');
+DO $$ BEGIN
+  CREATE POLICY "Service role update character images"
+    ON storage.objects FOR UPDATE
+    USING (bucket_id = 'Characters');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
