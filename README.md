@@ -22,7 +22,7 @@ The admin panel manages all content across the system:
 
 ## AI Architecture
 
-Six API endpoints use two LLM providers (Anthropic Claude + Google Gemini) across three LangGraph ReAct agents and three direct model calls.
+Eight API endpoints use two LLM providers (Anthropic Claude + Google Gemini) across three LangGraph ReAct agents, three direct model calls, and a two-step image pipeline.
 
 ```mermaid
 flowchart TB
@@ -47,6 +47,8 @@ flowchart TB
     subgraph adminAPI ["Admin API Routes"]
         genQ["POST /api/generate-questions"]
         genChar["POST /api/generate-character"]
+        findImg["POST /api/find-image"]
+        cropImg["POST /api/crop-image"]
     end
 
     subgraph agents ["LangGraph ReAct Agents"]
@@ -77,12 +79,19 @@ flowchart TB
         questionLLM["generateText\n🟣 Claude Sonnet 4.5\nQuiz question generation"]
     end
 
+    subgraph imgPipeline ["Image Pipeline"]
+        serper["🟢 Serper.dev\nGoogle Images API"]
+        sharp["sharp\ncenter-crop 512×512 WebP"]
+    end
+
     quiz --> syllabus
     results --> persona
     results --> templates
     settings --> chat
     quizMgmt --> genQ
     charMgmt --> genChar
+    charMgmt --> findImg
+    charMgmt --> cropImg
 
     syllabus -->|"pdf-parse / mammoth\nthen invoke()"| syllAgent
     persona --> personaLLM
@@ -90,6 +99,10 @@ flowchart TB
     chat -->|"streamEvents()"| cwAgent
     genQ --> questionLLM
     genChar -->|"invoke() × 3 steps"| charAgent
+
+    findImg -->|"query: name + work"| serper
+    cropImg -->|"download → crop"| sharp
+    sharp -->|"upload WebP"| storage[("Supabase Storage\nCharacters bucket")]
 
     syllAgent --> t1
     syllAgent --> t2
@@ -101,7 +114,7 @@ flowchart TB
     charAgent --> t6
     charAgent --> t7
 
-    templateLLM -.->|"write results"| supabase[(Supabase)]
+    templateLLM -.->|"write results"| supabase[(Supabase DB)]
     questionLLM -.->|"insert drafts"| supabase
 
     style syllAgent fill:#7c3aed,color:#fff
@@ -110,6 +123,9 @@ flowchart TB
     style questionLLM fill:#7c3aed,color:#fff
     style charAgent fill:#7c3aed,color:#fff
     style cwAgent fill:#2563eb,color:#fff
+    style serper fill:#16a34a,color:#fff
+    style sharp fill:#16a34a,color:#fff
+    style storage fill:#0891b2,color:#fff
 ```
 
 ### Model Summary
@@ -140,6 +156,10 @@ All three agents use `createReactAgent` from `@langchain/langgraph` and are init
 **Message Templates** (Quiz) — Generates 3 variants per enabled message type using the matched character's voice profile. Writes results to Supabase asynchronously.
 
 **Question Generation** (Admin) — Takes a quiz's settings schema and generates 4-6 scenario-based questions as drafts for admin review and approval. Uses the quiz name, description, and full settings context to produce relevant questions.
+
+### Image Pipeline
+
+**Character Image Search** (Admin) — Two-step pipeline for finding and storing character images. The `/api/find-image` route searches Serper.dev (Google Images index) using a `"name work character"` query template and returns 8 thumbnail/URL pairs. The `/api/crop-image` route downloads the selected full-resolution image, center-crops to 1:1 aspect ratio, resizes to 512×512 WebP via sharp, and uploads to the Supabase Storage `Characters` bucket. No LLM is involved — the pipeline uses deterministic query templates for well-known fictional characters.
 
 ## Tech Stack
 
