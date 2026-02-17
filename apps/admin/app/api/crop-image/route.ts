@@ -2,7 +2,7 @@ import sharp from "sharp";
 import { NextResponse } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase-server";
 
-const BUCKET = "character-images";
+const BUCKET = "Characters";
 
 export async function POST(req: Request) {
   const { imageUrl, characterId } = await req.json();

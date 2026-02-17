@@ -80,7 +80,7 @@ Next.js 16 App Router with Supabase Auth (email/password). Protected by middlewa
 - `/characters` — AI wizard for character creation, manage voice profiles, image search with crop & storage
 - `/access-codes` — Generate/revoke access codes for gating quiz entry
 
-**Character Image Pipeline**: `ImageSearch` component (`components/image-search.tsx`) has a three-phase flow: search (Serper.dev via `POST /api/find-image`) → preview → crop & save (`POST /api/crop-image` — downloads image, center-crops to 512x512 WebP via `sharp`, uploads to Supabase Storage `character-images` bucket).
+**Character Image Pipeline**: `ImageSearch` component (`components/image-search.tsx`) has a three-phase flow: search (Serper.dev via `POST /api/find-image`) → preview → crop & save (`POST /api/crop-image` — downloads image, center-crops to 512x512 WebP via `sharp`, uploads to Supabase Storage `Characters` bucket).
 
 ### AI / Agent Architecture
 
@@ -103,7 +103,7 @@ Optional integration with graceful fallback to static data.
 - **Shared client**: `packages/shared/src/supabase.ts` — lazy singleton `getSupabase()`, returns `null` if env vars missing
 - **Quiz queries**: `apps/quiz/lib/supabase-queries.ts` — fetchPersonas, fetchCharactersByPersona, fetchQuizQuestions, fetchConstraintQuestions, fetchActiveAccessCodes, validateAccessCode, writeQuizResult, writeMessageTemplates
 - **Admin actions**: `apps/admin/lib/actions.ts` — full CRUD via service role client
-- **Storage**: `character-images` bucket in Supabase Storage (public read, service role write). Created by `009_character_images_bucket.sql`.
+- **Storage**: `Characters` bucket in Supabase Storage (public read, service role write). Created by `009_character_images_bucket.sql`.
 - **Schema**: 9 migrations in `supabase/migrations/` — core schema, seeds, admin tables, quizzes, character demographics, character images, and storage bucket
 
 ### Persona Model (5 Personas)
