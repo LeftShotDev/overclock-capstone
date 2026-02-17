@@ -73,10 +73,14 @@ Next.js 16 App Router with Supabase Auth (email/password). Protected by middlewa
 
 **Server Actions**: All CRUD operations in `lib/actions.ts` use `createSupabaseServiceClient()` (service role key, bypasses RLS).
 
-**Pages**:
+**Pages** (all under `/onboarding/`):
+- `/quizzes` — CRUD quizzes with custom settings schemas, generate or add questions per quiz
 - `/questions` — CRUD for quiz questions (persona + constraint), reorder, toggle active
 - `/personas` — Edit persona settings and character voice profiles
+- `/characters` — AI wizard for character creation, manage voice profiles, image search with crop & storage
 - `/access-codes` — Generate/revoke access codes for gating quiz entry
+
+**Character Image Pipeline**: `ImageSearch` component (`components/image-search.tsx`) has a three-phase flow: search (Serper.dev via `POST /api/find-image`) → preview → crop & save (`POST /api/crop-image` — downloads image, center-crops to 512x512 WebP via `sharp`, uploads to Supabase Storage `character-images` bucket).
 
 ### AI / Agent Architecture
 
@@ -99,15 +103,18 @@ Optional integration with graceful fallback to static data.
 - **Shared client**: `packages/shared/src/supabase.ts` — lazy singleton `getSupabase()`, returns `null` if env vars missing
 - **Quiz queries**: `apps/quiz/lib/supabase-queries.ts` — fetchPersonas, fetchCharactersByPersona, fetchQuizQuestions, fetchConstraintQuestions, fetchActiveAccessCodes, validateAccessCode, writeQuizResult, writeMessageTemplates
 - **Admin actions**: `apps/admin/lib/actions.ts` — full CRUD via service role client
-- **Schema**: `supabase/migrations/001_schema.sql` (5 tables), `002_seed.sql` (data), `003_admin.sql` (quiz_questions, access_codes, admin RLS)
+- **Storage**: `character-images` bucket in Supabase Storage (public read, service role write). Created by `009_character_images_bucket.sql`.
+- **Schema**: 9 migrations in `supabase/migrations/` — core schema, seeds, admin tables, quizzes, character demographics, character images, and storage bucket
 
 ### Persona Model (5 Personas)
 
 Explorer, Nurturer, Mentor, Mastery Coach, Strategist — defined in `lib/data/personas.ts` (static fallback), `supabase/migrations/002_seed.sql` (database source), and manageable via admin panel. Each persona maps to 6 platform settings.
 
-### next.config.ts (Quiz App)
+### next.config.ts
 
-`serverExternalPackages` must include `@langchain/core`, `@langchain/langgraph`, `pdf-parse`, and `mammoth`.
+**Quiz App**: `serverExternalPackages` must include `@langchain/core`, `@langchain/langgraph`, `pdf-parse`, and `mammoth`.
+
+**Admin App**: `serverExternalPackages` must include `@langchain/core`, `@langchain/langgraph`, and `sharp`.
 
 ## Key Conventions
 
