@@ -32,6 +32,8 @@ export default function SettingsPage() {
     selectedCharacterId,
     generatedTemplates,
     setGeneratedTemplates,
+    syllabusData,
+    constraintAnswers,
     hydrated,
   } = useQuiz();
 
@@ -199,6 +201,8 @@ export default function SettingsPage() {
           body={{
             personaId: quizResult.topPersonaId,
             characterId: selectedCharacterId,
+            syllabusData,
+            constraintAnswers,
           }}
           className="h-[400px]"
         />

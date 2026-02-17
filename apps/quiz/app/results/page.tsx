@@ -8,7 +8,7 @@ import { PersonaCard } from "@/components/persona-card";
 import { CharacterCard } from "@/components/character-card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { fetchCharactersByPersona, writeQuizResult } from "@/lib/supabase-queries";
+import { fetchCharactersByPersona, writeQuizResult, writeMessageTemplates } from "@/lib/supabase-queries";
 import { computeRecommendations } from "@/lib/recommendation-engine";
 import type { Character } from "@/lib/types";
 
@@ -21,6 +21,7 @@ export default function ResultsPage() {
     syllabusData,
     selectedCharacterId,
     setSelectedCharacterId,
+    generatedTemplates,
     setGeneratedTemplates,
     personaBlurb,
     setPersonaBlurb,
@@ -126,6 +127,54 @@ export default function ResultsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, quizResult, persona, matchedCharacterId, personaBlurb, constraintAnswers, syllabusData, setPersonaBlurb]);
 
+  // Pre-fire template generation alongside the blurb (parallel fan-out)
+  // Templates don't need quizResultId to generate — the API treats it as optional.
+  // DB persistence happens later in handleContinue once we have the quizResultId.
+  useEffect(() => {
+    if (!hydrated || !quizResult || !selectedCharacterId) return;
+    // Skip if already loaded for this character
+    if (
+      generatedTemplates?.status === "success" &&
+      generatedTemplates.characterId === selectedCharacterId
+    ) return;
+    // Skip if already in-flight
+    if (generatedTemplates?.status === "loading") return;
+
+    setGeneratedTemplates({
+      templates: [],
+      characterId: selectedCharacterId,
+      personaId: quizResult.topPersonaId,
+      status: "loading",
+    });
+
+    fetch("/api/templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        personaId: quizResult.topPersonaId,
+        characterId: selectedCharacterId,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setGeneratedTemplates({
+          templates: data.templates,
+          characterId: selectedCharacterId,
+          personaId: quizResult.topPersonaId,
+          status: "success",
+        });
+      })
+      .catch(() => {
+        setGeneratedTemplates({
+          templates: [],
+          characterId: selectedCharacterId,
+          personaId: quizResult.topPersonaId,
+          status: "error",
+        });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, quizResult, selectedCharacterId]);
+
   // Fetch characters for persona
   useEffect(() => {
     if (!hydrated || !quizResult) return;
@@ -144,7 +193,7 @@ export default function ResultsPage() {
   }
 
   const handleContinue = async () => {
-    // Write quiz result to Supabase — await to get the ID for template generation
+    // Write quiz result to Supabase
     const recommendations = computeRecommendations({ quizResult });
     const quizResultId = await writeQuizResult({
       personaId: quizResult.topPersonaId,
@@ -155,41 +204,13 @@ export default function ResultsPage() {
       syllabusData,
     });
 
-    // Fire template generation (non-blocking)
-    if (selectedCharacterId) {
-      setGeneratedTemplates({
-        templates: [],
+    // Best-effort: persist already-generated templates to DB with the quizResultId
+    if (quizResultId && selectedCharacterId && generatedTemplates?.status === "success") {
+      writeMessageTemplates({
+        quizResultId,
         characterId: selectedCharacterId,
-        personaId: quizResult.topPersonaId,
-        status: "loading",
+        templates: generatedTemplates.templates,
       });
-
-      fetch("/api/templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          personaId: quizResult.topPersonaId,
-          characterId: selectedCharacterId,
-          quizResultId,
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setGeneratedTemplates({
-            templates: data.templates,
-            characterId: selectedCharacterId,
-            personaId: quizResult.topPersonaId,
-            status: "success",
-          });
-        })
-        .catch(() => {
-          setGeneratedTemplates({
-            templates: [],
-            characterId: selectedCharacterId,
-            personaId: quizResult.topPersonaId,
-            status: "error",
-          });
-        });
     }
 
     router.push("/settings");

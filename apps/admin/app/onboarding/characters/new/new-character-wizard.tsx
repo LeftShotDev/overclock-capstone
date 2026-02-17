@@ -78,6 +78,10 @@ export function NewCharacterWizard({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [agentImages, setAgentImages] = useState<
+    { url: string; thumbnail: string }[]
+  >([]);
+  const [isSavingImage, setIsSavingImage] = useState(false);
 
   // Review form (pre-filled by AI)
   const [reviewForm, setReviewForm] = useState({
@@ -124,19 +128,31 @@ export function NewCharacterWizard({
     setIsGenerating(true);
     setSuggestions([]);
     setSelectedDetail(null);
+    setAgentImages([]);
+
+    const existingNames = initialCharacters.map((c) => c.name);
+    const payload = {
+      step: "suggestions",
+      personaName: persona.name,
+      personaDescription: persona.description,
+      existingCharacters: existingNames,
+    };
 
     try {
-      const existingNames = initialCharacters.map((c) => c.name);
-      const res = await fetch("/api/generate-character", {
+      // Try supervised endpoint first, fall back to step-based
+      let res = await fetch("/api/generate-character-full", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step: "suggestions",
-          personaName: persona.name,
-          personaDescription: persona.description,
-          existingCharacters: existingNames,
-        }),
+        body: JSON.stringify(payload),
       });
+
+      if (!res.ok) {
+        res = await fetch("/api/generate-character", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
 
       if (!res.ok) {
         const err = await res.json();
@@ -187,6 +203,7 @@ export function NewCharacterWizard({
   async function handleSelectSuggestion(suggestion: Suggestion) {
     if (!selectedPersona) return;
     setIsLoadingProfile(true);
+    setAgentImages([]);
 
     const personaChars = initialCharacters.filter(
       (c) => c.persona_id === wizardPersona
@@ -195,29 +212,58 @@ export function NewCharacterWizard({
       name: c.name,
       voice_profile: c.voice_profile,
     }));
+    const existingNames = initialCharacters.map((c) => c.name);
+
+    const fullPayload = {
+      step: "profile",
+      name: suggestion.name,
+      work: suggestion.work,
+      personaName: selectedPersona.name,
+      personaDescription: selectedPersona.description,
+      existingVoiceProfiles: JSON.stringify(existingProfiles),
+      existingCharacters: existingNames,
+      characterId: generateId(suggestion.name),
+    };
 
     try {
-      const res = await fetch("/api/generate-character", {
+      // Try supervised endpoint (returns profile + images in one call)
+      let res = await fetch("/api/generate-character-full", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step: "profile",
-          name: suggestion.name,
-          work: suggestion.work,
-          personaName: selectedPersona.name,
-          personaDescription: selectedPersona.description,
-          existingVoiceProfiles: JSON.stringify(existingProfiles),
-        }),
+        body: JSON.stringify(fullPayload),
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        alert(err.error || "Failed to generate profile");
-        return;
-      }
+      let profile;
+      let images: { url: string; thumbnail: string }[] = [];
 
-      const data = await res.json();
-      const profile = data.profile;
+      if (res.ok) {
+        const data = await res.json();
+        profile = data.profile;
+        images = data.images ?? [];
+      } else {
+        // Fall back to step-based endpoint (profile only, no images)
+        res = await fetch("/api/generate-character", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            step: "profile",
+            name: suggestion.name,
+            work: suggestion.work,
+            personaName: selectedPersona.name,
+            personaDescription: selectedPersona.description,
+            existingVoiceProfiles: JSON.stringify(existingProfiles),
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.error || "Failed to generate profile");
+          return;
+        }
+
+        const data = await res.json();
+        profile = data.profile;
+      }
 
       setReviewForm({
         name: suggestion.name,
@@ -230,11 +276,55 @@ export function NewCharacterWizard({
         image_url: "",
       });
 
+      setAgentImages(images);
       setWizardStep("review");
     } catch {
       alert("Failed to generate profile. Check your ANTHROPIC_API_KEY.");
     } finally {
       setIsLoadingProfile(false);
+    }
+  }
+
+  async function handleAgentImageSelect(imageUrl: string) {
+    const charId = generateId(reviewForm.name);
+    setIsSavingImage(true);
+
+    try {
+      // Try supervised endpoint for image save
+      let res = await fetch("/api/generate-character-full", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          step: "save-image",
+          imageUrl,
+          characterId: charId,
+        }),
+      });
+
+      if (!res.ok) {
+        // Fall back to direct crop endpoint
+        res = await fetch("/api/crop-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl, characterId: charId }),
+        });
+      }
+
+      if (!res.ok) {
+        alert("Failed to save image");
+        return;
+      }
+
+      const data = await res.json();
+      const storedUrl = data.storedUrl;
+      if (storedUrl) {
+        setReviewForm((p) => ({ ...p, image_url: storedUrl }));
+        setAgentImages([]);
+      }
+    } catch {
+      alert("Failed to save image");
+    } finally {
+      setIsSavingImage(false);
     }
   }
 
@@ -274,6 +364,7 @@ export function NewCharacterWizard({
       });
       // Loop back to suggestions for another
       setWizardStep("suggestions");
+      setAgentImages([]);
       setReviewForm({
         name: "",
         work: "",
@@ -649,9 +740,10 @@ export function NewCharacterWizard({
                     work: reviewForm.work,
                   }}
                   characterId={generateId(reviewForm.name)}
-                  onSelect={(url) =>
-                    setReviewForm((p) => ({ ...p, image_url: url }))
-                  }
+                  onSelect={(url) => {
+                    setReviewForm((p) => ({ ...p, image_url: url }));
+                    setAgentImages([]);
+                  }}
                 />
               </div>
               {reviewForm.image_url && (
@@ -660,6 +752,32 @@ export function NewCharacterWizard({
                   alt="Preview"
                   className="w-16 h-16 rounded-md object-cover"
                 />
+              )}
+              {!reviewForm.image_url && agentImages.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground">
+                    {isSavingImage
+                      ? "Saving image..."
+                      : "AI-suggested images — click to use:"}
+                  </p>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {agentImages.map((img) => (
+                      <button
+                        key={img.url}
+                        type="button"
+                        disabled={isSavingImage}
+                        onClick={() => handleAgentImageSelect(img.url)}
+                        className="aspect-square rounded-md overflow-hidden border-2 border-transparent hover:border-violet-400 transition-colors disabled:opacity-50"
+                      >
+                        <img
+                          src={img.thumbnail}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
             <div className="space-y-2">

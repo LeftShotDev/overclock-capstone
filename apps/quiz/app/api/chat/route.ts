@@ -3,6 +3,7 @@ import { toBaseMessages, toUIMessageStream } from "@ai-sdk/langchain";
 import { HumanMessage } from "@langchain/core/messages";
 import { getCoursewareGraph } from "@/lib/agents";
 import { PERSONAS } from "@/lib/data/personas";
+import type { SyllabusData, ConstraintAnswer } from "@capstone/shared";
 
 export const maxDuration = 60;
 
@@ -11,10 +12,14 @@ export async function POST(req: Request) {
     messages,
     personaId,
     characterId,
+    syllabusData,
+    constraintAnswers,
   }: {
     messages: UIMessage[];
     personaId?: string;
     characterId?: string | null;
+    syllabusData?: SyllabusData | null;
+    constraintAnswers?: ConstraintAnswer[];
   } = await req.json();
 
   const graph = getCoursewareGraph();
@@ -31,6 +36,27 @@ export async function POST(req: Request) {
   }
   if (characterId) {
     context += ` Selected character: ${characterId}.`;
+  }
+
+  // Syllabus-extracted course structure
+  if (syllabusData) {
+    const parts: string[] = [];
+    if (syllabusData.courseDuration) parts.push(`duration: ${syllabusData.courseDuration}`);
+    if (syllabusData.moduleCount) parts.push(`${syllabusData.moduleCount} modules`);
+    if (syllabusData.assignmentTypes?.length) parts.push(`assignment types: ${syllabusData.assignmentTypes.join(", ")}`);
+    if (syllabusData.gradingPolicies) parts.push(`grading: ${syllabusData.gradingPolicies}`);
+    if (syllabusData.discussionExpectations) parts.push(`discussions: ${syllabusData.discussionExpectations}`);
+    if (parts.length) {
+      context += ` Course structure: ${parts.join("; ")}.`;
+    }
+  }
+
+  // Constraint answers (course logistics from quiz)
+  if (constraintAnswers?.length) {
+    const constraintSummary = constraintAnswers
+      .map((ca) => `${ca.constraintKey}: ${ca.selectedValue}`)
+      .join("; ");
+    context += ` Course constraints: ${constraintSummary}.`;
   }
 
   if (context) {
