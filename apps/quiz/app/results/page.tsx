@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { fetchCharactersByPersona, writeQuizResult, writeMessageTemplates } from "@/lib/supabase-queries";
 import { computeRecommendations } from "@/lib/recommendation-engine";
+import { useResultsAnimation } from "./use-results-animation";
 import type { Character } from "@/lib/types";
 
 export default function ResultsPage() {
@@ -53,6 +54,21 @@ export default function ResultsPage() {
       .map((id) => characters.find((c) => c.id === id))
       .filter((c): c is Character => c != null);
   }, [characters, quizResult]);
+
+  const {
+    headerRef,
+    avatarRef,
+    heroTextRef,
+    separatorRef,
+    personaLabelRef,
+    personaCardRef,
+    altLabelRef,
+    altGridRef,
+    continueRef,
+  } = useResultsAnimation({
+    hasMatchedCharacter: !!matchedCharacter,
+    hasAlternatives: alternativeCharacters.length > 0,
+  });
 
   // Auto-select matched character on mount
   useEffect(() => {
@@ -220,7 +236,7 @@ export default function ResultsPage() {
     <main className="min-h-screen flex items-center justify-center p-4 bg-background">
       <div className="w-full max-w-2xl space-y-8 py-8">
         {/* 1. Character-focused header */}
-        <div className="text-center space-y-2">
+        <div ref={headerRef} className="text-center space-y-2">
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
             Your character match is...
           </p>
@@ -238,6 +254,8 @@ export default function ResultsPage() {
             isSelected={selectedCharacterId === matchedCharacter.id}
             onSelect={setSelectedCharacterId}
             featured
+            avatarRef={avatarRef}
+            textRef={heroTextRef}
             streamedBlurb={
               (blurb || isStreaming) ? (
                 <p className="text-sm leading-relaxed whitespace-pre-wrap pt-1">
@@ -254,12 +272,16 @@ export default function ResultsPage() {
         {/* 4. Teaching persona section */}
         {persona && (
           <>
-            <Separator />
+            <div ref={separatorRef}>
+              <Separator />
+            </div>
             <div className="space-y-4">
-              <p className="text-sm font-semibold text-muted-foreground">
+              <p ref={personaLabelRef} className="text-sm font-semibold text-muted-foreground">
                 Part of the {persona.name} teaching philosophy
               </p>
-              <PersonaCard persona={persona} />
+              <div ref={personaCardRef}>
+                <PersonaCard persona={persona} />
+              </div>
             </div>
           </>
         )}
@@ -267,7 +289,7 @@ export default function ResultsPage() {
         {/* 5. Alternative characters */}
         {alternativeCharacters.length > 0 && (
           <div className="space-y-4">
-            <div className="space-y-1">
+            <div ref={altLabelRef} className="space-y-1">
               <p className="text-sm font-semibold text-muted-foreground">
                 Other {persona.name} characters
               </p>
@@ -275,7 +297,7 @@ export default function ResultsPage() {
                 These share your teaching philosophy with a different communication style.
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div ref={altGridRef} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {alternativeCharacters.map((character) => (
                 <CharacterCard
                   key={character.id}
@@ -289,13 +311,15 @@ export default function ResultsPage() {
         )}
 
         {/* 6. Continue button */}
-        <Button
-          onClick={handleContinue}
-          className="w-full"
-          size="lg"
-        >
-          Continue to Settings
-        </Button>
+        <div ref={continueRef}>
+          <Button
+            onClick={handleContinue}
+            className="w-full"
+            size="lg"
+          >
+            Continue to Settings
+          </Button>
+        </div>
       </div>
     </main>
   );

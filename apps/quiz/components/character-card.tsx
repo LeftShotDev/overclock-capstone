@@ -57,6 +57,10 @@ interface CharacterCardProps {
   featured?: boolean;
   /** Streamed blurb content rendered inline after the character description */
   streamedBlurb?: React.ReactNode;
+  /** Ref for the avatar wrapper (featured layout only) */
+  avatarRef?: React.Ref<HTMLDivElement>;
+  /** Ref for the text column (featured layout only) */
+  textRef?: React.Ref<HTMLDivElement>;
 }
 
 export function CharacterCard({
@@ -65,17 +69,21 @@ export function CharacterCard({
   onSelect,
   featured,
   streamedBlurb,
+  avatarRef,
+  textRef,
 }: CharacterCardProps) {
   // Featured layout: flat (no card), avatar + text flowing into blurb
   if (featured) {
     return (
       <div className="flex gap-6 items-start">
-        <CharacterAvatar
-          imageUrl={character.imageUrl}
-          name={character.name}
-          className="w-24 h-24 shrink-0"
-        />
-        <div className="space-y-1 min-w-0">
+        <div ref={avatarRef} className="w-24 shrink-0 aspect-square drop-shadow-md">
+          <CharacterAvatar
+            imageUrl={character.imageUrl}
+            name={character.name}
+            className="w-24 h-24 shrink-0 aspect-square"
+          />
+        </div>
+        <div ref={textRef} className="space-y-1 min-w-0">
           <h2 className="text-2xl font-bold tracking-tight">{character.name}</h2>
           <p className="text-sm text-muted-foreground">{character.work}</p>
           <p className="text-sm font-medium italic text-muted-foreground pt-1">
