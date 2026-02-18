@@ -3,9 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuiz } from "@/lib/quiz-context";
-import { fetchActiveAccessCodes, validateAccessCode } from "@/lib/supabase-queries";
+import {
+  fetchActiveAccessCodes,
+  validateAccessCode,
+  fetchCoverCharacters,
+} from "@/lib/supabase-queries";
+import { CharacterMosaic } from "@/components/character-mosaic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { Character } from "@/lib/types";
 
 export default function Home() {
   const router = useRouter();
@@ -16,15 +22,20 @@ export default function Home() {
   const [codeInput, setCodeInput] = useState("");
   const [codeError, setCodeError] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
+  const [coverCharacters, setCoverCharacters] = useState<Character[]>([]);
 
-  // Check if access codes are required
+  // Fetch cover characters and check access codes in parallel
   useEffect(() => {
-    async function checkCodes() {
-      const hasActiveCodes = await fetchActiveAccessCodes();
+    async function init() {
+      const [hasActiveCodes, characters] = await Promise.all([
+        fetchActiveAccessCodes(),
+        fetchCoverCharacters(),
+      ]);
       setCodesRequired(hasActiveCodes);
+      setCoverCharacters(characters);
       setCodesChecked(true);
     }
-    checkCodes();
+    init();
   }, []);
 
   if (!hydrated || !codesChecked) return null;
@@ -48,6 +59,7 @@ export default function Home() {
     return (
       <main className="min-h-screen flex items-center justify-center p-4 bg-background">
         <div className="text-center space-y-6 max-w-md">
+          <CharacterMosaic characters={coverCharacters} />
           <h1 className="text-4xl font-bold tracking-tight">Welcome Back!</h1>
           <p className="text-muted-foreground">
             You&apos;ve already completed the quiz. Where would you like to go?
@@ -81,8 +93,9 @@ export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-background">
       <div className="text-center space-y-6 max-w-md">
+        <CharacterMosaic characters={coverCharacters} />
         <h1 className="text-4xl font-bold tracking-tight">
-          What Kind of Professor Are You?
+          What Kind of Instructor<br /> Are You?
         </h1>
         <p className="text-muted-foreground text-lg">
           Take this quick quiz to discover your teaching persona and get

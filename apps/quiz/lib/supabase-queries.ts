@@ -4,6 +4,35 @@ import { QUIZ_QUESTIONS } from "@/lib/data/quiz-questions";
 import { CONSTRAINT_QUESTIONS } from "@/lib/data/constraint-questions";
 import type { TeachingPersona, Character, QuizQuestion, ConstraintQuestion } from "@/lib/types";
 
+export async function fetchCoverCharacters(): Promise<Character[]> {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from("characters")
+      .select("*")
+      .not("image_url", "is", null)
+      .order("sort_order");
+
+    if (error || !data?.length) return [];
+
+    return data.map((row) => ({
+      id: row.id,
+      personaId: row.persona_id,
+      name: row.name,
+      work: row.work,
+      tagline: row.tagline,
+      description: row.description,
+      voiceProfile: row.voice_profile,
+      sortOrder: row.sort_order,
+      imageUrl: row.image_url ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchPersonas(): Promise<Record<string, TeachingPersona>> {
   try {
     const supabase = getSupabase();
