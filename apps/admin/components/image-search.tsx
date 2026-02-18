@@ -123,8 +123,9 @@ export function ImageSearch({
         variant="outline"
         size="xs"
         onClick={() => {
-          setPhase("search");
           setQuery(initialQuery);
+          setPhase("search");
+          if (initialQuery.trim()) handleSearch();
         }}
       >
         <Search className="size-3" />
@@ -196,7 +197,17 @@ export function ImageSearch({
     );
   }
 
-  // Search state — query input + results grid
+  // Loading state — just show spinner while initial search is in-flight
+  if (isSearching && results.length === 0) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+        <Loader2 className="size-3 animate-spin" />
+        Searching for images...
+      </div>
+    );
+  }
+
+  // Search state — query input + results grid (shown after results return)
   return (
     <div className="border rounded-md p-3 space-y-3 bg-muted/30">
       <div className="flex items-center justify-between">
