@@ -26,11 +26,14 @@ function shuffle<T>(arr: T[]): T[] {
 
 /**
  * Build an array of `count` items by drawing randomly from `pool`.
- * Each slot picks independently so the order is fully randomised,
- * even when the pool is smaller than `count` (duplicates will appear
- * but won't follow a repeating pattern across rows).
+ * When the pool is large enough, returns unique items (no duplicates).
+ * When the pool is smaller than `count`, each slot picks independently
+ * so duplicates appear but don't follow a repeating pattern across rows.
  */
 function randomFill<T>(pool: T[], count: number): T[] {
+  if (pool.length >= count) {
+    return shuffle([...pool]).slice(0, count);
+  }
   return Array.from(
     { length: count },
     () => pool[Math.floor(Math.random() * pool.length)]
