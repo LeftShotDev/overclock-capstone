@@ -20,6 +20,7 @@ import {
   FileQuestion,
   Save,
 } from "lucide-react";
+import { AdminChat } from "@/components/admin-chat";
 
 interface SettingOption {
   label: string;
@@ -213,6 +214,13 @@ export function EditQuizClient({
           </div>
         </CardContent>
       </Card>
+
+      {/* Admin Chat Agent */}
+      <AdminChat
+        quizId={quiz.id}
+        quizName={name}
+        className="h-[400px]"
+      />
 
       {/* Settings Schema */}
       <Card>
