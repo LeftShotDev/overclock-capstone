@@ -14,7 +14,7 @@ The quiz app has three pages that form a sequential flow:
 
 The admin panel manages all content across the system:
 
-- **Quizzes** — Create quizzes with custom settings schemas (JSONB), then generate or manually add questions per quiz
+- **Quizzes** — Create quizzes with custom settings schemas (JSONB), then generate or manually add questions per quiz. Each quiz edit page includes an inline AI chat agent that can read and write across all admin sections (personas, characters, questions, access codes) without navigating away
 - **Questions** — CRUD and reorder global quiz questions with persona/constraint types
 - **Personas** — Edit the 5 teaching personas, their settings, and assigned characters
 - **Characters** — Manage teacher characters with voice profiles, sex/ethnicity demographics, image search with auto-crop to Supabase Storage, and an AI wizard that uses a supervised multi-turn agent to suggest characters, generate full profiles, and search for representative images in a single coordinated flow
@@ -22,7 +22,7 @@ The admin panel manages all content across the system:
 
 ## AI Architecture
 
-Nine API endpoints use two LLM providers (Anthropic Claude + Google Gemini) across four LangGraph ReAct agents, three direct model calls, and a two-step image pipeline. Three multi-agent coordination patterns connect otherwise-isolated components: context enrichment (syllabus + constraint data flows into the chat agent), a supervised multi-turn agent (character wizard combines profile generation with image search), and parallel fan-out (template generation starts alongside the persona reveal).
+Ten API endpoints use two LLM providers (Anthropic Claude + Google Gemini) across five LangGraph ReAct agents, three direct model calls, and a two-step image pipeline. Four multi-agent coordination patterns connect otherwise-isolated components: context enrichment (syllabus + constraint data flows into the chat agent), a supervised multi-turn agent (character wizard combines profile generation with image search), parallel fan-out (template generation starts alongside the persona reveal), and a cross-section admin assistant (chat agent with 14 tools for reading and writing across all admin entities).
 
 ```mermaid
 flowchart TB
@@ -33,6 +33,7 @@ flowchart TB
     end
 
     subgraph adminUI ["Admin App"]
+        quizEdit["/onboarding/quizzes/[id] — Chat Panel"]
         quizMgmt["/onboarding/quizzes/[id]/questions"]
         charWizard["/onboarding/characters/new"]
         charMgmt["/onboarding/characters"]
@@ -46,6 +47,7 @@ flowchart TB
     end
 
     subgraph adminAPI ["Admin API Routes"]
+        adminChat["POST /api/chat"]
         genQ["POST /api/generate-questions"]
         genChar["POST /api/generate-character"]
         genCharFull["POST /api/generate-character-full"]
@@ -58,6 +60,7 @@ flowchart TB
         cwAgent["Courseware Agent\n🔵 Gemini 2.0 Flash\nTemp: 0.7"]
         charAgent["Character Agent\n🟣 Claude Sonnet 4.5\nTemp: 0.8\n2 tools"]
         charWizardAgent["Character Wizard Agent\n🟣 Claude Sonnet 4.5\nTemp: 0.8\n4 tools"]
+        adminAgent["Admin Chat Agent\n🟣 Claude Sonnet 4.5\nTemp: 0.7\n14 tools"]
     end
 
     subgraph syllTools ["Syllabus Tools"]
@@ -81,6 +84,14 @@ flowchart TB
         t9["save_character_image"]
     end
 
+    subgraph adminTools ["Admin Tools (14)"]
+        at1["list/get/update quizzes"]
+        at2["list/get/create/update questions"]
+        at3["list/update personas"]
+        at4["list/create/update characters"]
+        at5["list/create access codes"]
+    end
+
     subgraph direct ["Direct Model Calls"]
         personaLLM["streamText\n🟣 Claude Sonnet 4.5\nStreaming persona blurb"]
         templateLLM["generateText\n🟣 Claude Sonnet 4.5\nMessage template adaptation"]
@@ -96,6 +107,7 @@ flowchart TB
     results --> persona
     results -->|"pre-fires on\ncharacter select"| templates
     settings --> chat
+    quizEdit -->|"streamEvents()\n+ quiz context"| adminChat
     quizMgmt --> genQ
     charWizard -->|"supervised\nmulti-step"| genCharFull
     charMgmt --> genChar
@@ -107,6 +119,7 @@ flowchart TB
     templates --> templateLLM
     chat -->|"streamEvents()\n+ syllabus & constraints"| cwAgent
     genQ --> questionLLM
+    adminChat -->|"streamEvents()\n+ quiz context"| adminAgent
     genChar -->|"invoke() × 3 steps"| charAgent
     genCharFull -->|"invoke() per step\nsuggestions → profile+images → save"| charWizardAgent
 
@@ -129,6 +142,17 @@ flowchart TB
     charWizardAgent --> t8
     charWizardAgent --> t9
 
+    adminAgent --> at1
+    adminAgent --> at2
+    adminAgent --> at3
+    adminAgent --> at4
+    adminAgent --> at5
+    at1 -.->|"read/write"| supabase
+    at2 -.->|"read/write"| supabase
+    at3 -.->|"read/write"| supabase
+    at4 -.->|"read/write"| supabase
+    at5 -.->|"read/write"| supabase
+
     t8 -->|"query: name + work"| serper
     t9 -->|"download → crop → upload"| sharp
     sharp -->|"upload WebP"| storage
@@ -142,6 +166,7 @@ flowchart TB
     style questionLLM fill:#7c3aed,color:#fff
     style charAgent fill:#7c3aed,color:#fff
     style charWizardAgent fill:#7c3aed,color:#fff
+    style adminAgent fill:#7c3aed,color:#fff
     style cwAgent fill:#2563eb,color:#fff
     style serper fill:#16a34a,color:#fff
     style sharp fill:#16a34a,color:#fff
@@ -159,6 +184,7 @@ flowchart TB
 | `claude-sonnet-4-5-20250929` | Admin | Question generation | Direct `generateText` | — | No |
 | `claude-sonnet-4-5-20250929` | Admin | Character suggestions + profiles (fallback) | LangGraph ReAct agent | 2 | No |
 | `claude-sonnet-4-5-20250929` | Admin | Character wizard (multi-turn supervisor) | LangGraph ReAct agent | 4 | No |
+| `claude-sonnet-4-5-20250929` | Admin | Admin chat agent (cross-section assistant) | LangGraph ReAct agent | 14 | Yes |
 
 ### Agent Details
 
@@ -170,7 +196,9 @@ flowchart TB
 
 **Character Wizard Agent** — Supervised multi-turn agent for the new-character wizard. Extends the Character Suggestion Agent with 2 additional image tools (`find_character_image`, `save_character_image`) for a total of 4 tools. The wizard endpoint (`/api/generate-character-full`) invokes this agent per step: (1) `"suggestions"` — generates character suggestions; (2) `"profile"` — generates a full profile AND searches for representative images in a single invocation, returning both together; (3) `"save-image"` — downloads, center-crops to 512×512 WebP, and uploads the selected image to Supabase Storage. The wizard UI falls back to the step-based agent if the full endpoint fails.
 
-All four agents use `createReactAgent` from `@langchain/langgraph` and are initialized as **lazy singletons** — created once on first use, then cached for the server lifetime.
+**Admin Chat Agent** — Cross-section admin assistant embedded inline on the quiz edit page. Has 14 tools for reading and writing across all admin entities: quizzes (list/get/update), questions (list/get/create/update), personas (list/update), characters (list/create/update), and access codes (list/create). Receives the current quiz's ID and name as context so it can resolve "this quiz" references. Confirms before write operations. No delete tools for safety.
+
+All five agents use `createReactAgent` from `@langchain/langgraph` and are initialized as **lazy singletons** — created once on first use, then cached for the server lifetime.
 
 ### Direct Model Calls
 
@@ -192,13 +220,14 @@ Both paths produce identical output: a 512×512 WebP image stored in the Supabas
 
 ### Multi-Agent Coordination
 
-Three coordination patterns connect otherwise-isolated AI components:
+Four coordination patterns connect otherwise-isolated AI components:
 
 | Pattern | App | What Coordinates | How |
 |---------|-----|-----------------|-----|
 | Context enrichment | Quiz | Syllabus Agent → Courseware Agent | Syllabus-extracted data and constraint answers are injected into the chat API request body, giving the Courseware Agent awareness of course structure |
 | Supervised multi-turn | Admin | Character Wizard Agent | Single agent with 4 tools handles suggestions → profile + image search → image save across multiple supervised invocations via `/api/generate-character-full` |
 | Parallel fan-out | Quiz | Results Page → Template Generation | Template generation fires as a `useEffect` when a character is selected, running concurrently with persona blurb streaming so templates are pre-loaded before navigation |
+| Cross-section assistant | Admin | Admin Chat Agent on quiz edit page | Single streaming agent with 14 tools reads and writes across all admin entities (quizzes, questions, personas, characters, access codes) via direct Supabase queries, with quiz context injected per conversation |
 
 ## Tech Stack
 
@@ -246,7 +275,7 @@ pnpm dev
 
 | Variable | Used For |
 |---|---|
-| `ANTHROPIC_API_KEY` | AI question generation + character wizard agent |
+| `ANTHROPIC_API_KEY` | AI question generation + character wizard + admin chat agent |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-side admin writes (bypasses RLS) |
@@ -280,6 +309,7 @@ capstone/
 │       ├── app/
 │       │   ├── login/              Email/password auth
 │       │   ├── api/
+│       │   │   ├── chat/                     LangGraph admin chat agent (14 tools, streaming)
 │       │   │   ├── generate-questions/       Claude generateText (quiz questions)
 │       │   │   ├── generate-character/       LangGraph character agent (3-step fallback)
 │       │   │   ├── generate-character-full/  Supervised multi-turn wizard (4-tool agent)
@@ -296,9 +326,11 @@ capstone/
 │       │   └── ui/                 shadcn/ui primitives
 │       └── lib/
 │           ├── agents/
+│           │   ├── admin-chat-agent.ts  Admin Chat Agent (14 tools, cross-section)
 │           │   ├── character-agent.ts   Character Agent + Character Wizard Agent
-│           │   ├── index.ts             Lazy singletons for both agents
+│           │   ├── index.ts             Lazy singletons for all three agents
 │           │   └── tools/
+│           │       ├── admin-tools.ts     14 CRUD tools for all admin entities
 │           │       ├── character-tools.ts  suggestions + profile tools
 │           │       └── image-tools.ts      find + save image tools
 │           ├── actions.ts          Server actions (service role)
